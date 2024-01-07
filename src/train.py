@@ -34,10 +34,13 @@ def main(cfg):
     # --------------------------------------------------
 
     print('Creating model...')
-    device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
-    model = getters.get_model(architecture=cfg.model.architecture, init_params=cfg.model.init_params)
 
-    print(device)
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+    else:
+        device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+
+    model = getters.get_model(architecture=cfg.model.architecture, init_params=cfg.model.init_params)
 
     print('Moving model to device...')
     model.to(device)
