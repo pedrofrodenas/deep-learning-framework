@@ -4,16 +4,18 @@ GID := $(shell id -g)
 
 preprocess:
 	python -m src.datasets.preprocess_gen \
-		--image-folder data/raw/Human-Segmentation-Dataset-master/train-images \
-		--ground-truth data/raw/Human-Segmentation-Dataset-master/train-ground-truth \
-		--dst-folder data/preprocessed/train \
-		--extension .jpg
+		--image-folder data/raw/preprocess_supervisely/images \
+		--ground-truth data/raw/preprocess_supervisely/masks \
+		--dst-folder data/preprocessed/supervisely \
+		--extension .png
 
-	python -m src.datasets.preprocess_gen \
-		--image-folder data/raw/Human-Segmentation-Dataset-master/val-images \
-		--ground-truth data/raw/Human-Segmentation-Dataset-master/val-ground-truth \
-		--dst-folder data/preprocessed/validation \
-		--extension .jpg
+split:
+	python -m src.datasets.split \
+		--image-folder data/preprocessed/supervisely/images \
+		--ground-truth data/preprocessed/supervisely/masks \
+		--dst-train data/datasets/supervisely/train \
+		--dst-val data/datasets/supervisely/val \
+		--extension .png
 
 train:
 	python -m src.train --config=configs/pytorch-gen.yaml
