@@ -2,10 +2,17 @@ import torch.nn as nn
 import segmentation_models_pytorch as smp
 from .training import losses, metrics, optimizers, callbacks
 from . import datasets
+from . import models
 
 
 def get_model(architecture, init_params):
-    model_class = smp.__dict__[architecture]
+
+    try:
+        model_class = models.__dict__[architecture]
+    except KeyError as e:
+        print(f"{architecture} architecture is not available in this repository, checking segmentation models")
+        model_class = smp.__dict__[architecture]
+
     return model_class(**init_params)
 
 
