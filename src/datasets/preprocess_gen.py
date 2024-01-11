@@ -34,33 +34,6 @@ def numpy2pil(np_array: np.ndarray) -> Image:
     img = Image.fromarray(np_array, 'RGB')
     return img
 
-
-def parse_defaultannot(defaultannot_path):
-    
-    defaultannot = {}
-    
-    with open(defaultannot_path) as f:
-        for line in f:
-            line_list = line.split()
-            integer_map = list(map(int, line_list[:-1]))
-            label_name = line_list[-1]
-            defaultannot[label_name] = integer_map
-    return defaultannot
-
-def filter_defects(img, filter_names, defaultannot):
-    
-    img = np.array(img)
-    
-    for defect_name in filter_names:
-        
-        rgb_code = defaultannot[defect_name]
-        
-        mask = np.all(img == rgb_code, axis=2)
-        
-        img[mask, :] = [0, 0, 0]
-        
-    return img
-
 class Preprocessor():
     
     def __init__(self,
