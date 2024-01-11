@@ -58,7 +58,7 @@ class Preprocessor():
         image = Image.open(image_path)
         mask = Image.open(full_mask_path).convert('L')
 
-        mask.point(lambda p: p > 0 and 255)
+        mask = mask.point(lambda p: p > 0 and 255)
 
         if image.mode != 'RGB':
             image = image.convert('RGB')
