@@ -120,6 +120,15 @@ def main(cfg):
     print('Defining callbacks..')
     callbacks = []
 
+    if cfg.training.callbacks:
+        callbacks_dict = {}
+        for output_name in cfg.training.callbacks.keys():
+            callbacks_dict[output_name] = []
+            for callback in cfg.training.callbacks[output_name]:
+                callbacks.append(
+                    getters.get_callback(callback.name, callback.init_params)
+                )
+
     # add scheduler callback
     if scheduler is not None:
         callbacks.append(training.callbacks.Scheduler(scheduler))
