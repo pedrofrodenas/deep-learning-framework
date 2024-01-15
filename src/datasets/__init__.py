@@ -1,1 +1,1 @@
-from .datasets import SegmentationDataset
+from .datasets import SegmentationDataset, PredictionDataset
