@@ -19,3 +19,5 @@ split:
 
 train:
 	python -m src.train --config=configs/pytorch-gen.yaml
+evaluate:
+	python -m src.eval --config=configs/pytorch-gen.yaml
