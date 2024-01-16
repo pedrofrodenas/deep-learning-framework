@@ -58,6 +58,13 @@ training:
       - name: IoU
         init_params:
 
+  callbacks:
+    mask:
+    - name: BatchNormFreezer
+      init_params:
+        start_epoch: 0
+        freeze_affine: false
+
   optimizer:
     name: Adam
     init_params:
