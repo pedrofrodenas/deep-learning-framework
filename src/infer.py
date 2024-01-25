@@ -74,6 +74,9 @@ def main(args):
     else:
         device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 
+    if not os.path.exists(args.dst_dir):
+        os.makedirs(args.dst_dir)
+
 
     init_params_custom = cfg.model.init_params  # extract model initialization parameters
     init_params_custom["encoder_weights"] = None  # because we will load pretrained weights for whole model
