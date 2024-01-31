@@ -13,6 +13,8 @@ from . import training
 from .training.config import parse_config, save_config
 from .training.runner import GPUNormRunner
 
+from torchviz import make_dot
+
 cudnn.benchmark = True
 
 
@@ -52,6 +54,12 @@ def main(cfg):
         print("Creating DataParallel Model on gpus:", cfg.gpus)
         model = torch.nn.DataParallel(model)
         model.to(device)
+
+    x = torch.randn(1,3, 512, 512).to(device)
+
+    dot = make_dot(model(x), params=dict(model.named_parameters()))
+    dot.format = 'svg'
+    dot.render('unet.svg')
 
     # --------------------------------------------------
     # define datasets and dataloaders
