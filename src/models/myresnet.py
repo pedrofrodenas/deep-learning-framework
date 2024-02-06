@@ -50,7 +50,8 @@ class MyResNet32(nn.Module):
         # Resolution divided by 2
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
-        self.layer1 = BasicBlock(64, 64)
+        # self.layer1 = BasicBlock(64, 64)
+        self.layer1 = nn.Sequential(BasicBlock(64, 64), BasicBlock(64, 64))
     
     def forward(self, x):
 
