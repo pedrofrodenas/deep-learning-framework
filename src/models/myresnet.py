@@ -26,22 +26,23 @@ def resnet_bottleneck():
     return conv_op
 
 class MyResNet32(nn.Module):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super(MyResNet32, self).__init__()
 
-        self.intro_block = resnet_head(3, 64)
+        self.intro_block = resnet_head()
 
         # Resolution divided by 2
-        self.max_pooling_intro = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
-        self.layer1 = nn.Sequential(resnet_block, resnet_block)
+        self.resnet_block = resnet_block()
     
     def forward(self, x):
 
         intro1 = self.intro_block(x)
-        max1 = self.max_pooling_intro(intro1)
-        layer1 = self.layer1(max1)
+        max1 = self.maxpool(intro1)
+        layer1 = self.resnet_block(max1)
+        layer2 = self.resnet_block(layer1)
 
-        return layer1
+        return layer2
         
 
