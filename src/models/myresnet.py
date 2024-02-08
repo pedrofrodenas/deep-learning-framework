@@ -2,14 +2,6 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
-def resnet_head():
-    conv_op = nn.Sequential(
-        nn.Conv2d(3, 64, kernel_size=7, padding=3, stride = 2 ,bias=False),
-        torch.nn.BatchNorm2d(64, eps=1e-05, momentum=0.1),
-        nn.ReLU(inplace=True)
-    )
-    return conv_op
-
 def resnet_downsampling(input_channels, output_channels):
     conv_op = nn.Sequential(
         nn.Conv2d(input_channels, output_channels, kernel_size=1, stride=2, padding=1, bias=False),
@@ -54,7 +46,7 @@ class DownsamplingBlock(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.conv2 = nn.Conv2d(output_channel, output_channel, kernel_size=3, padding=1, stride = 1 ,bias=False)
         self.bn2 = nn.BatchNorm2d(output_channel, eps=1e-05, momentum=0.1)
-        self.downsampling = resnet_downsampling(input_channel, output_channel)
+        self.downsample = resnet_downsampling(input_channel, output_channel)
 
     def forward(self, x: Tensor) -> Tensor:
         # identity = x
@@ -63,7 +55,7 @@ class DownsamplingBlock(nn.Module):
         out = self.relu(out)
         out = self.conv2(out)
         out = self.bn2(out)
-        out += self.downsampling(x)
+        out += self.downsample(x)
         out = self.relu(out)
         return out
 
@@ -75,7 +67,10 @@ class MyResNet18(nn.Module):
                  **kwargs):
         super(MyResNet18, self).__init__()
 
-        self.intro_block = resnet_head()
+        # ResNet Head
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, padding=3, stride = 2 ,bias=False)
+        self.bn1 = nn.BatchNorm2d(64, eps=1e-05, momentum=0.1)
+        self.relu = nn.ReLU(inplace=True)
 
         # Resolution divided by 2
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
@@ -107,10 +102,18 @@ class MyResNet18(nn.Module):
                     nn.init.constant_(m.bn3.weight, 0)  # type: ignore[arg-type]
                 elif isinstance(m, BasicBlock) and m.bn2.weight is not None:
                     nn.init.constant_(m.bn2.weight, 0)  # type: ignore[arg-type]
+
+        # Weights initialization
+        state_dict = torch.hub.load_state_dict_from_url('https://s3.amazonaws.com/pytorch/models/resnet18-5c106cde.pth', weights_only = False)
+
+        super().load_state_dict(state_dict)
     
     def forward(self, x: Tensor) -> Tensor:
 
-        x = self.intro_block(x)
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+
         x = self.maxpool(x)
         x = self.layer1(x)
         x = self.layer2(x)
