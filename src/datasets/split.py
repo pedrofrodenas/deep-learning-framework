@@ -42,6 +42,12 @@ def get_args():
         type=str,
         required=True)
     
+    args_parser.add_argument(
+        '--percentage',
+        help='percentage split to validation set',
+        type=float,
+        required=True)
+    
     return args_parser.parse_args()
 
 
@@ -50,6 +56,7 @@ def main():
     args = get_args()
 
     extension = args.extension
+    percentage = args.percentage
 
     
     image_paths = glob.glob(args.image_folder + "/*" + extension)
@@ -76,7 +83,7 @@ def main():
     if not os.path.exists(dst_mask_val):
         os.makedirs(dst_mask_val)
 
-    n_test_images = int(len(image_paths)*0.3)
+    n_test_images = int(len(image_paths)*percentage)
 
     test_images = image_paths[:n_test_images]
     train_images = image_paths[n_test_images:]
@@ -94,12 +101,5 @@ def main():
         shutil.copy(test_image, dst_image_val)
         shutil.copy(os.path.join(args.ground_truth, file_name), dst_mask_val)
 
-    
-
-    
-
-
-    
-    
 if __name__ == '__main__':
     main()

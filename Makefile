@@ -15,7 +15,8 @@ split:
 		--ground-truth data/preprocessed/supervisely/masks \
 		--dst-train data/datasets/supervisely/train \
 		--dst-val data/datasets/supervisely/val \
-		--extension .png
+		--extension .png \
+		--percentage 0.3
 
 train:
 	python -m src.train --config=configs/pytorch-gen.yaml
