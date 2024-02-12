@@ -1,3 +1,4 @@
+from typing import Mapping
 import torch
 import torch.nn as nn
 from torch import Tensor
@@ -60,12 +61,15 @@ class DownsamplingBlock(nn.Module):
         return out
 
 
-class MyResNet18(nn.Module):
+class CustomResNet18(nn.Module):
     def __init__(self,
                  classes: int = 1000,
+                 pretrained = True,
                  zero_init_residual: bool = False,
                  **kwargs):
-        super(MyResNet18, self).__init__()
+        super(CustomResNet18, self).__init__()
+
+        self.weights_url = "https://s3.amazonaws.com/pytorch/models/resnet18-5c106cde.pth"
 
         # ResNet Head
         self.conv1 = nn.Conv2d(3, 64, kernel_size=7, padding=3, stride = 2 ,bias=False)
@@ -103,10 +107,13 @@ class MyResNet18(nn.Module):
                 elif isinstance(m, BasicBlock) and m.bn2.weight is not None:
                     nn.init.constant_(m.bn2.weight, 0)  # type: ignore[arg-type]
 
-        # Weights initialization
-        state_dict = torch.hub.load_state_dict_from_url('https://s3.amazonaws.com/pytorch/models/resnet18-5c106cde.pth', weights_only = False)
 
-        super().load_state_dict(state_dict)
+        if pretrained:
+            # Weights initialization
+            state_dict = torch.hub.load_state_dict_from_url(self.weights_url, weights_only = False)
+
+            super().load_state_dict(state_dict)
+
     
     def forward(self, x: Tensor) -> Tensor:
 
@@ -125,4 +132,31 @@ class MyResNet18(nn.Module):
 
         return x
         
+class Resnet18Backbone(CustomResNet18):
+    def __init__(self,
+                 classes: int = 1000,
+                 zero_init_residual: bool = False,
+                 **kwargs):
+        # Se define arquitectura de CustomResNet18 es decir
+        # se crea self.state_dict() con la conexion de las capas
+        super(Resnet18Backbone, self).__init__()
+
+        # We delete classification layers
+        del self.fc
+        del self.avgpool
+
+    # Se redefine forward sin las capas de clasificacion
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+
+        x = self.maxpool(x)
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+        x = self.layer4(x)
+        return x
+
+
 

@@ -2,5 +2,6 @@ from .myunet import (
     UNetCustom
 )
 from .myresnet import (
-    MyResNet18
+    CustomResNet18,
+    Resnet18Backbone
 )
