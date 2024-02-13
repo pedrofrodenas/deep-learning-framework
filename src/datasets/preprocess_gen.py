@@ -20,6 +20,8 @@ import pandas as pd
 from PIL import Image
 from tqdm import tqdm
 
+from PIL import ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 def numpy2pil(np_array: np.ndarray) -> Image:
     """
