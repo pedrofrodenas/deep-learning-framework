@@ -5,7 +5,7 @@ from torch import Tensor
 
 def resnet_downsampling(input_channels, output_channels):
     conv_op = nn.Sequential(
-        nn.Conv2d(input_channels, output_channels, kernel_size=1, stride=2, padding=1, bias=False),
+        nn.Conv2d(input_channels, output_channels, kernel_size=1, stride=2, bias=False),
         nn.BatchNorm2d(output_channels, eps=1e-05, momentum=0.1)
     )
     return conv_op
@@ -50,13 +50,13 @@ class DownsamplingBlock(nn.Module):
         self.downsample = resnet_downsampling(input_channel, output_channel)
 
     def forward(self, x: Tensor) -> Tensor:
-        # identity = x
+        identity = x
         out = self.conv1(x)
         out = self.bn1(out)
         out = self.relu(out)
         out = self.conv2(out)
         out = self.bn2(out)
-        out += self.downsample(x)
+        out += self.downsample(identity)
         out = self.relu(out)
         return out
 
@@ -147,16 +147,28 @@ class Resnet18Backbone(CustomResNet18):
 
     # Se redefine forward sin las capas de clasificacion
     def forward(self, x):
+
+        features = []
+
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
+        features.append(x)
 
         x = self.maxpool(x)
         x = self.layer1(x)
+        features.append(x)
+
         x = self.layer2(x)
+        features.append(x)
+
         x = self.layer3(x)
+        features.append(x)
+
         x = self.layer4(x)
-        return x
+        features.append(x)
+
+        return features
 
 
 
