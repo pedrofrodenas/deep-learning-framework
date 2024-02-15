@@ -36,7 +36,7 @@ def numpy2pil(np_array: np.ndarray) -> Image:
     img = Image.fromarray(np_array, 'RGB')
     return img
 
-class Preprocessor():
+class PreprocessorOpenCV():
     
     def __init__(self,
                  ground_truth,
@@ -54,6 +54,81 @@ class Preprocessor():
         
         scaleup = True
         image_name = os.path.splitext(os.path.basename(image_path))[0]+'.png'
+
+        print(image_name)
+        
+        full_mask_path = os.path.join(self.ground_truth, image_name)
+        
+        image = cv2.imread(image_path)
+        mask = cv2.imread(full_mask_path)
+        mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY) 
+
+        mask = (mask > 0).astype('uint8')*255
+
+
+        # Resize and pad image while meeting stride-multiple constraints
+        shape = image.shape  # current shape [height, width]
+
+        # Scale ratio (new / old)
+        r = min(self.shape[0] / shape[0], self.shape[1] / shape[1])
+
+        if not scaleup:  # only scale down, do not scale up (for better val mAP)
+            r = min(r, 1.0)
+
+        # Compute padding
+        new_unpad = int(round(shape[0] * r)), int(round(shape[1] * r))
+
+        dw, dh = self.shape[0] - new_unpad[0], self.shape[1] - new_unpad[1]  # wh padding
+
+        dw /= 2  # divide padding into 2 sides
+        dh /= 2
+
+        if shape[:2] != new_unpad:  # resize
+
+            image = cv2.resize(image,
+                    (int(shape[1] * r), int(shape[0] * r)),
+                    interpolation = cv2.INTER_LINEAR
+                )
+            mask = cv2.resize(mask,
+                    (int(shape[1] * r), int(shape[0] * r)),
+                    interpolation = cv2.INTER_NEAREST
+                )
+
+        top, bottom = int(round(dh - 0.1)), int(round(dh + 0.1))
+        left, right = int(round(dw - 0.1)), int(round(dw + 0.1))
+
+        image = cv2.copyMakeBorder(image, top, bottom, left, right, 0)
+        mask = cv2.copyMakeBorder(mask, top, bottom, left, right, 0)
+
+        cv2.imwrite(os.path.join(self.dst_defect_image, image_name), image)
+        cv2.imwrite(os.path.join(self.dst_defect_mask, image_name), mask)
+
+        
+def _parallelize(func, data):
+    processes = cpu_count() - 1
+    with Pool(processes) as pool:
+        # We need the enclosing list statement to wait for the iterator to end
+        # https://stackoverflow.com/a/45276885/1663506
+        list(tqdm(pool.imap_unordered(func, data), total=len(data)))
+
+class Preprocessor():
+    
+    def __init__(self,
+                 ground_truth,
+                 dst_defect_image, 
+                 dst_defect_mask,
+                 shape):
+        
+        self.ground_truth = ground_truth
+        self.dst_defect_image = dst_defect_image
+        self.dst_defect_mask = dst_defect_mask
+        # shape [height, width]
+        self.shape = shape
+        
+    def preprocess_image(self, image_path):
+
+        scaleup = True
+        image_name = os.path.splitext(os.path.basename(image_path))[0]+'.png'
         
         full_mask_path = os.path.join(self.ground_truth, image_name)
         
@@ -65,11 +140,11 @@ class Preprocessor():
         if image.mode != 'RGB':
             image = image.convert('RGB')
 
-         # Resize and pad image while meeting stride-multiple constraints
+        # Resize and pad image while meeting stride-multiple constraints
         shape = image.size  # current shape [width, height]
 
         # Scale ratio (new / old)
-        r = min(self.shape[1] / shape[0], self.shape[0] / shape[1])
+        r = min(self.shape[0] / shape[0], self.shape[1] / shape[1])
 
         if not scaleup:  # only scale down, do not scale up (for better val mAP)
             r = min(r, 1.0)
@@ -164,7 +239,7 @@ def main():
         os.makedirs(dst_defect_mask)
         
   
-    processor = Preprocessor(args.ground_truth,
+    processor = PreprocessorOpenCV(args.ground_truth,
                              dst_defect_image, 
                              dst_defect_mask,
                              [512, 512])
