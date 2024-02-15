@@ -54,8 +54,6 @@ class PreprocessorOpenCV():
         
         scaleup = True
         image_name = os.path.splitext(os.path.basename(image_path))[0]+'.png'
-
-        print(image_name)
         
         full_mask_path = os.path.join(self.ground_truth, image_name)
         

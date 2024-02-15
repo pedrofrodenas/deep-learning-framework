@@ -169,6 +169,29 @@ class Resnet18Backbone(CustomResNet18):
         features.append(x)
 
         return features
+    
+class DecoderBlock(nn.Module):
+    def __init__(self,
+                 input_channel: int,
+                 output_channel: int
+                 ):
+        super(DecoderBlock, self).__init__()
+        
+        self.conv1 = nn.Conv2d(input_channel, output_channel, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        self.bn1 = nn.BatchNorm2d(output_channel, eps=1e-05, momentum=0.1)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv2 = nn.Conv2d(output_channel, output_channel, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        self.bn2 = nn.BatchNorm2d(output_channel, eps=1e-05, momentum=0.1)
+
+    
+class UnetDecoder(nn.Module):
+    def __init__(self):
+        super(UnetDecoder, self).__init__()
+        pass
+
+
+
+    
 
 
 
