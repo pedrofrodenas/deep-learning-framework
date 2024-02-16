@@ -215,6 +215,13 @@ def get_args():
         type=str,
         required=True)
     
+    args_parser.add_argument(
+        '--input-size',
+        help='input size of the dataset [height, width]',
+        nargs='+',
+        type=int,
+        required=True)
+    
     return args_parser.parse_args()
 
 
@@ -224,6 +231,8 @@ def main():
     args = get_args()
 
     extension = args.extension
+
+    input_size = args.input_size
 
     
     image_paths = glob.glob(args.image_folder + "/*" + extension)
@@ -241,7 +250,7 @@ def main():
     processor = PreprocessorOpenCV(args.ground_truth,
                              dst_defect_image, 
                              dst_defect_mask,
-                             [512, 512])
+                             input_size)
     
     _parallelize(processor.preprocess_image, image_paths)
     
