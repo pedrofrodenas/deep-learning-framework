@@ -74,7 +74,8 @@ class PreprocessorOpenCV():
             r = min(r, 1.0)
 
         # Compute padding
-        new_unpad = int(round(shape[0] * r)), int(round(shape[1] * r))
+        # new_unpad = int(round(shape[0] * r)), int(round(shape[1] * r))
+        new_unpad = int(math.floor(shape[0] * r)), int(math.floor(shape[1] * r))
 
         dw, dh = self.shape[1] - new_unpad[1], self.shape[0] - new_unpad[0]  # wh padding
 
