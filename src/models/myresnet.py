@@ -2,6 +2,7 @@ from typing import Mapping
 import torch
 import torch.nn as nn
 from torch import Tensor
+import torch.nn.functional as F
 
 def resnet_downsampling(input_channels, output_channels):
     conv_op = nn.Sequential(
@@ -183,10 +184,35 @@ class DecoderBlock(nn.Module):
         self.conv2 = nn.Conv2d(output_channel, output_channel, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
         self.bn2 = nn.BatchNorm2d(output_channel, eps=1e-05, momentum=0.1)
 
+    def forward(self, x, feature=None):
+        x = F.interpolate(x, scale_factor=2, mode="nearest")
+        if feature is not None:
+            x = torch.cat(x, feature, dim = 1)
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.conv2(x)
+        x = self.bn2(x)
+        x = self.relu(x)
+        return x
+
     
 class UnetDecoder(nn.Module):
     def __init__(self):
         super(UnetDecoder, self).__init__()
+        
+        # Block0 512 output from last layer Resnet18 + 256 previous block of Resnet = 768
+        self.block0 = DecoderBlock(768, 256)
+        # Block0 has 256 channels and the block that comes from Resnet18 128 256+128 = 384
+        self.block1 = DecoderBlock(384, 128)
+        # Block1 has 128 channels and the one that comes from Resnet18 64 -> 64+128 = 192
+        self.block2 = DecoderBlock(192, 64)
+        # Block2 has 64 output channels and the one comming from Resnet has 64 = 128
+        self.block3 = DecoderBlock(128, 32)
+        # Last block has no connection with Resnet, only upsampling
+        self.block4 = DecoderBlock(32, 16)
+
+    def forward(self):
         pass
 
 
