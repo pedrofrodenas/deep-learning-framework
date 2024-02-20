@@ -187,7 +187,7 @@ class DecoderBlock(nn.Module):
     def forward(self, x, feature=None):
         x = F.interpolate(x, scale_factor=2, mode="nearest")
         if feature is not None:
-            x = torch.cat(x, feature, dim = 1)
+            x = torch.cat((x, feature), dim = 1)
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
@@ -212,8 +212,34 @@ class UnetDecoder(nn.Module):
         # Last block has no connection with Resnet, only upsampling
         self.block4 = DecoderBlock(32, 16)
 
-    def forward(self):
-        pass
+    def forward(self, *features):
+        
+        x = self.block0(features[4], features[3])
+        x = self.block1(x, features[2])
+        x = self.block2(x, features[1])
+        x = self.block3(x, features[0])
+        x = self.block4(x)
+
+        return x
+    
+class Resnet18Segmentation(nn.Module):
+    def __init__(self,
+                 classes: int = 1000,
+                 **kwargs):
+        super(Resnet18Segmentation, self).__init__()
+
+        self.resnet18_encoder = Resnet18Backbone(classes)
+        self.unet_decoder = UnetDecoder()
+
+    def forward(self, x):
+
+        features = self.resnet18_encoder(x)
+        decoder_output = self.unet_decoder(*features)
+
+        return decoder_output
+
+
+
 
 
 

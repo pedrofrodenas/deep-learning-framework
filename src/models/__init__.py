@@ -3,5 +3,5 @@ from .myunet import (
 )
 from .myresnet import (
     CustomResNet18,
-    Resnet18Backbone
+    Resnet18Segmentation
 )
