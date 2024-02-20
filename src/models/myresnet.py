@@ -4,6 +4,8 @@ import torch.nn as nn
 from torch import Tensor
 import torch.nn.functional as F
 
+from .modules import Activation
+
 def resnet_downsampling(input_channels, output_channels):
     conv_op = nn.Sequential(
         nn.Conv2d(input_channels, output_channels, kernel_size=1, stride=2, bias=False),
@@ -135,7 +137,6 @@ class CustomResNet18(nn.Module):
         
 class Resnet18Backbone(CustomResNet18):
     def __init__(self,
-                 classes: int = 1000,
                  zero_init_residual: bool = False,
                  **kwargs):
         # Se define arquitectura de CustomResNet18 es decir
@@ -212,6 +213,23 @@ class UnetDecoder(nn.Module):
         # Last block has no connection with Resnet, only upsampling
         self.block4 = DecoderBlock(32, 16)
 
+        for m in self.modules():
+
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_uniform_(m.weight, mode="fan_in", nonlinearity="relu")
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+
+            elif isinstance(m, nn.Linear):
+                nn.init.xavier_uniform_(m.weight)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+
+
     def forward(self, *features):
         
         x = self.block0(features[4], features[3])
@@ -222,21 +240,48 @@ class UnetDecoder(nn.Module):
 
         return x
     
+class SegmentationHead(nn.Module):
+    def __init__(self,
+                 classes: int = 1000,
+                 activation=None):
+
+        super(SegmentationHead, self).__init__()
+        
+        self.conv2d = nn.Conv2d(16, classes, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        self.activation = Activation(activation)
+
+        # Initialization
+        for m in self.modules():
+            if isinstance(m, (nn.Linear, nn.Conv2d)):
+                nn.init.xavier_uniform_(m.weight)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+
+    def forward(self, x):
+        x = self.conv2d(x)
+        x = self.activation(x)
+        return x
+
+
+        
+    
 class Resnet18Segmentation(nn.Module):
     def __init__(self,
                  classes: int = 1000,
+                 activation=None,
                  **kwargs):
         super(Resnet18Segmentation, self).__init__()
 
-        self.resnet18_encoder = Resnet18Backbone(classes)
+        self.resnet18_encoder = Resnet18Backbone()
         self.unet_decoder = UnetDecoder()
+        self.segmentation_head = SegmentationHead(classes, activation)
 
     def forward(self, x):
 
         features = self.resnet18_encoder(x)
         decoder_output = self.unet_decoder(*features)
-
-        return decoder_output
+        head_output = self.segmentation_head(decoder_output)
+        return head_output
 
 
 
