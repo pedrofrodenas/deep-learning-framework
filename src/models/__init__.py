@@ -5,3 +5,7 @@ from .myresnet import (
     CustomResNet18,
     Resnet18Segmentation
 )
+
+from .mymobilenetv2 import (
+    MyMobilenetv2,
+)
