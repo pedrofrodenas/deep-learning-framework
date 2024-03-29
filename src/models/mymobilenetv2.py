@@ -7,7 +7,7 @@ from torchvision.ops.misc import Conv2dNormActivation
 
 from typing import List
 
-from utils import make_divisible
+from .utils import make_divisible
 
 class InvertedResidual(nn.Module):
     def __init__(self,
@@ -25,34 +25,31 @@ class InvertedResidual(nn.Module):
         # use residual connection
         self.use_res_connect = self.stride == 1 and inp == out
 
+        layers: List[nn.Module] = []
+
         # Channel Expansion Layer
-        self.bottleneck = Conv2dNormActivation(
-            inp,
-            hidden_dim,
-            kernel_size=1,
-            stride=1,
-            activation_layer=nn.ReLU6
-        )
+        if expand_ratio != 1:
+            layers.append(Conv2dNormActivation(
+                inp,
+                hidden_dim,
+                kernel_size=1,
+                stride=1,
+                activation_layer=nn.ReLU6
+            ))
 
         # Depth-Wise Convolution 3x3 kernel
-        self.depth_wise_conv = Conv2dNormActivation(
+        layers.append(Conv2dNormActivation(
                     hidden_dim,
                     hidden_dim,
                     stride=stride,
                     groups=hidden_dim,
                     activation_layer=nn.ReLU6,
-                )
+                ))
         # Linear projection, (no activation function)
-        self.linear_projection = nn.Conv2d(hidden_dim, out, 1, 1, 0, bias=False)
+        layers.append(nn.Conv2d(hidden_dim, out, 1, 1, 0, bias=False))
+        layers.append(nn.BatchNorm2d(out))
 
         self.out_channels = out
-
-        layers: List[nn.Module] = []
-
-        if expand_ratio != 1:
-            layers.append(self.depth_wise_conv)
-        
-        layers.extend([self.depth_wise_conv, self.linear_projection])
 
         self.conv = nn.Sequential(*layers)
 
@@ -68,8 +65,12 @@ class MyMobilenetv2(nn.Module):
     def __init__(self,
                  num_classes: int = 1000,
                  width_mult: float = 1.0,
-                 dropout: float = 0.2):
+                 dropout: float = 0.2,
+                 pretrained = True,
+                 **kwargs):
         super(MyMobilenetv2, self).__init__()
+
+        self.weights_url = "https://download.pytorch.org/models/mobilenet_v2-7ebf99e0.pth"
 
         first_layer_output = 32
         last_layer_output = 1280
@@ -101,7 +102,7 @@ class MyMobilenetv2(nn.Module):
             first_layer_output,
             kernel_size=3,
             stride=2,
-            activation_layer=nn.ReLU6
+            activation_layer=nn.ReLU6,
         ))
 
         for t, c, n, s in settings:
@@ -146,8 +147,24 @@ class MyMobilenetv2(nn.Module):
                 if m.bias is not None:
                     nn.init.constant_(m.bias, 0)
 
+        # Load pretrained weights
+        if pretrained:
+            # Weights initialization
+            state_dict = torch.hub.load_state_dict_from_url(self.weights_url)
+            super().load_state_dict(state_dict)
 
-        
+    def _forward_impl(self, x: Tensor) -> Tensor:
+        # This exists since TorchScript doesn't support inheritance, so the superclass method
+        # (this one) needs to have a name other than `forward` that can be accessed in a subclass
+        x = self.features(x)
+        # Cannot use "squeeze" as batch-size can be 1
+        x = nn.functional.adaptive_avg_pool2d(x, (1, 1))
+        x = torch.flatten(x, 1)
+        x = self.classifier(x)
+        return x
+
+    def forward(self, x: Tensor) -> Tensor:
+        return self._forward_impl(x)
 
             
 
