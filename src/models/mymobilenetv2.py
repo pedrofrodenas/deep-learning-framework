@@ -8,6 +8,8 @@ from torchvision.ops.misc import Conv2dNormActivation
 from typing import List
 
 from .utils import make_divisible
+from .decoders import DecoderBlock
+from .head import SegmentationHead
 
 class InvertedResidual(nn.Module):
     def __init__(self,
@@ -61,14 +63,14 @@ class InvertedResidual(nn.Module):
 
 
 
-class MyMobilenetv2(nn.Module):
+class Mobilenetv2(nn.Module):
     def __init__(self,
                  num_classes: int = 1000,
                  width_mult: float = 1.0,
                  dropout: float = 0.2,
                  pretrained = True,
                  **kwargs):
-        super(MyMobilenetv2, self).__init__()
+        super(Mobilenetv2, self).__init__()
 
         self.weights_url = "https://download.pytorch.org/models/mobilenet_v2-7ebf99e0.pth"
 
@@ -171,7 +173,7 @@ class MyMobilenetv2(nn.Module):
         return self._forward_impl(x)
     
 
-class Mobilenetv2Backbone(MyMobilenetv2):
+class Mobilenetv2Backbone(Mobilenetv2):
     def __init__(self,
                  **kwargs):
         # Se define arquitectura de CustomResNet18 es decir
@@ -193,13 +195,72 @@ class Mobilenetv2Backbone(MyMobilenetv2):
     def forward(self, x):
 
         features = []
-        stages = self.get_forward_outputs(x)
+        stages = self.get_forward_outputs()
         for i in range(len(stages)):
             x = stages[i](x)
             features.append(x)
 
         return features
+
+class Mobilenetv2Decoder(nn.Module):
+    def __init__(self):
+        super(Mobilenetv2Decoder, self).__init__()
+
+        # out_channels = [256, 128, 64, 32, 16] estos son fijos
+        # input channels are number of channels of features from encoder + cocatenation of
+        # previous layer output
+        self.block0 = DecoderBlock(1376, 256)
+        self.block1 = DecoderBlock(288, 128)
+        self.block2 = DecoderBlock(152, 64)
+        self.block3 = DecoderBlock(80, 32)
+        # Last block has no concatenation from encoder, input channel equals last block
+        self.block4 = DecoderBlock(32, 16)
+
+        # Layer initialization
+        for m in self.modules():
+
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_uniform_(m.weight, mode="fan_in", nonlinearity="relu")
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+
+            elif isinstance(m, nn.Linear):
+                nn.init.xavier_uniform_(m.weight)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+
+    def forward(self, *features):
     
+        x = self.block0(features[4], features[3])
+        x = self.block1(x, features[2])
+        x = self.block2(x, features[1])
+        x = self.block3(x, features[0])
+        x = self.block4(x)
+
+        return x
+        
+class Mobilenetv2Segmentation(nn.Module):
+    def __init__(self,
+                 classes: int = 1000,
+                 activation=None,
+                 **kwargs):
+        super(Mobilenetv2Segmentation, self).__init__()
+
+        self.mobilenetv2_encoder = Mobilenetv2Backbone()
+        self.mobilenetv2_decoder = Mobilenetv2Decoder()
+        self.segmentation_head = SegmentationHead(classes, activation)
+
+    def forward(self, x):
+        features = self.mobilenetv2_encoder(x)
+        decoder_output = self.mobilenetv2_decoder(*features)
+        head_output = self.segmentation_head(decoder_output)
+        return head_output
+        
+
 
 
 

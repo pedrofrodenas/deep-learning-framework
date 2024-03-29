@@ -6,6 +6,7 @@ import torch.nn.functional as F
 
 from .modules import Activation
 from .decoders import DecoderBlock
+from .head import SegmentationHead
 
 def resnet_downsampling(input_channels, output_channels):
     conv_op = nn.Sequential(
@@ -178,6 +179,7 @@ class UnetDecoder(nn.Module):
         super(UnetDecoder, self).__init__()
         
         # Block0 512 output from last layer Resnet18 + 256 previous block of Resnet = 768
+        # Output size is fixed [256, 128, 64, 32, 16] for all backbones
         self.block0 = DecoderBlock(768, 256)
         # Block0 has 256 channels and the block that comes from Resnet18 128 256+128 = 384
         self.block1 = DecoderBlock(384, 128)
@@ -214,32 +216,7 @@ class UnetDecoder(nn.Module):
         x = self.block4(x)
 
         return x
-    
-class SegmentationHead(nn.Module):
-    def __init__(self,
-                 classes: int = 1000,
-                 activation=None):
 
-        super(SegmentationHead, self).__init__()
-        
-        self.conv2d = nn.Conv2d(16, classes, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
-        self.activation = Activation(activation)
-
-        # Initialization
-        for m in self.modules():
-            if isinstance(m, (nn.Linear, nn.Conv2d)):
-                nn.init.xavier_uniform_(m.weight)
-                if m.bias is not None:
-                    nn.init.constant_(m.bias, 0)
-
-    def forward(self, x):
-        x = self.conv2d(x)
-        x = self.activation(x)
-        return x
-
-
-        
-    
 class Resnet18Segmentation(nn.Module):
     def __init__(self,
                  classes: int = 1000,

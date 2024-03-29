@@ -7,5 +7,5 @@ from .myresnet import (
 )
 
 from .mymobilenetv2 import (
-    MyMobilenetv2,
+    Mobilenetv2Segmentation,
 )
