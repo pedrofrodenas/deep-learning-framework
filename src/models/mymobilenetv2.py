@@ -156,7 +156,11 @@ class MyMobilenetv2(nn.Module):
     def _forward_impl(self, x: Tensor) -> Tensor:
         # This exists since TorchScript doesn't support inheritance, so the superclass method
         # (this one) needs to have a name other than `forward` that can be accessed in a subclass
-        x = self.features(x)
+        #x = self.features(x)
+
+        for f in self.features:
+            x = f(x)
+            print(x.shape)
         # Cannot use "squeeze" as batch-size can be 1
         x = nn.functional.adaptive_avg_pool2d(x, (1, 1))
         x = torch.flatten(x, 1)
@@ -165,6 +169,39 @@ class MyMobilenetv2(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         return self._forward_impl(x)
+    
+
+class Mobilenetv2Backbone(MyMobilenetv2):
+    def __init__(self,
+                 **kwargs):
+        # Se define arquitectura de CustomResNet18 es decir
+        # se crea self.state_dict() con la conexion de las capas
+        super(Mobilenetv2Backbone, self).__init__()
+
+        # We delete classification layers
+        del self.classifier
+
+    def get_forward_outputs(self):
+        return [
+            self.features[0:2],
+            self.features[2:4],
+            self.features[4:7],
+            self.features[7:14],
+            self.features[14:],
+        ]
+    
+    def forward(self, x):
+
+        features = []
+        stages = self.get_forward_outputs(x)
+        for i in range(len(stages)):
+            x = stages[i](x)
+            features.append(x)
+
+        return features
+    
+
+
 
             
 
