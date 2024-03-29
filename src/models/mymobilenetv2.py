@@ -5,6 +5,8 @@ import torch.nn.functional as F
 
 from torchvision.ops.misc import Conv2dNormActivation
 
+from typing import List
+
 class InvertedResidual(nn.Module):
     def __init__(self,
                  inp,
@@ -21,7 +23,16 @@ class InvertedResidual(nn.Module):
         # use residual connection
         self.use_res_connect = self.stride == 1 and inp == out
 
-        # Depth-Wise Convolution
+        # Channel Expansion Layer
+        self.bottleneck = Conv2dNormActivation(
+            inp,
+            hidden_dim,
+            kernel_size=1,
+            stride=1,
+            activation_layer=nn.ReLU6
+        )
+
+        # Depth-Wise Convolution 3x3 kernel
         self.depth_wise_conv = Conv2dNormActivation(
                     hidden_dim,
                     hidden_dim,
@@ -29,9 +40,25 @@ class InvertedResidual(nn.Module):
                     groups=hidden_dim,
                     activation_layer=nn.ReLU6,
                 )
+        # Linear projection, (no activation function)
         self.linear_projection = nn.Conv2d(hidden_dim, out, 1, 1, 0, bias=False)
 
+        self.out_channels = out
 
+        layers: List[nn.Module] = []
+
+        if expand_ratio != 1:
+            layers.append(self.depth_wise_conv)
+        
+        layers.extend([self.depth_wise_conv, self.linear_projection])
+
+        self.conv = nn.Sequential(*layers)
+
+    def forward(self, x):
+        if self.use_res_connect:
+            return x + self.conv(x)
+        else:
+            return self.conv(x)
 
 
 
