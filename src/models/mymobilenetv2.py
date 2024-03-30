@@ -3,6 +3,8 @@ import torch.nn as nn
 from torch import Tensor
 import torch.nn.functional as F
 
+import timm
+
 from torchvision.ops.misc import Conv2dNormActivation
 
 from typing import List
@@ -173,6 +175,108 @@ class Mobilenetv2(nn.Module):
         return self._forward_impl(x)
     
 
+class Mobilenetv2_050Backbone(nn.Module):
+    def __init__(self,
+                 **kwargs):
+        super().__init__()
+
+        model_name = "mobilenetv2_050"
+        
+        # minimal models replace hardswish with relu
+        self.model = timm.create_model(
+            model_name=model_name,
+            scriptable=True,  # torch.jit scriptable
+            exportable=True,  # onnx export
+            features_only=True,
+        )
+
+    def get_model(self):
+        return self.model
+    
+    def get_forward_outputs(self):
+        return [
+                nn.Sequential(
+                    self.model.conv_stem,
+                    self.model.bn1,
+                    self.model.blocks[0]
+                ),
+                self.model.blocks[1],
+                self.model.blocks[2],
+                self.model.blocks[3:5],
+                self.model.blocks[5:],
+            ]
+    
+    def forward(self, x):
+
+        features = []
+        stages = self.get_forward_outputs()
+        for i in range(len(stages)):
+            x = stages[i](x)
+            print(f"stage {i} shape: {x.shape}")
+            features.append(x)
+
+        return features
+
+class Mobilenetv2_050Decoder(nn.Module):
+    def __init__(self):
+        super(Mobilenetv2_050Decoder, self).__init__()
+
+        # These out_channels are smaller due to low output channels of backbone
+        # out_channels = [128, 64, 32, 16, 8]
+        # input channels are number of channels of features from encoder + cocatenation of
+        # previous layer output
+        self.block0 = DecoderBlock(208, 128)
+        self.block1 = DecoderBlock(144, 64)
+        self.block2 = DecoderBlock(80, 32)
+        self.block3 = DecoderBlock(40, 16)
+        # Last block has no concatenation from encoder, input channel equals last block
+        self.block4 = DecoderBlock(16, 8)
+
+        # Layer initialization
+        for m in self.modules():
+
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_uniform_(m.weight, mode="fan_in", nonlinearity="relu")
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+
+            elif isinstance(m, nn.Linear):
+                nn.init.xavier_uniform_(m.weight)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+
+    def forward(self, *features):
+    
+        x = self.block0(features[4], features[3])
+        x = self.block1(x, features[2])
+        x = self.block2(x, features[1])
+        x = self.block3(x, features[0])
+        x = self.block4(x)
+
+        return x
+    
+class Mobilenetv2_050Segmentation(nn.Module):
+    def __init__(self,
+                 classes: int = 1000,
+                 activation=None,
+                 **kwargs):
+        super(Mobilenetv2_050Segmentation, self).__init__()
+
+        self.mobilenetv2_050_encoder = Mobilenetv2_050Backbone()
+        self.mobilenetv2_050_decoder = Mobilenetv2_050Decoder()
+        self.segmentation_head = SegmentationHead(classes, input_chn = 8, activation = activation)
+
+    def forward(self, x):
+        features = self.mobilenetv2_050_encoder(x)
+        decoder_output = self.mobilenetv2_050_decoder(*features)
+        head_output = self.segmentation_head(decoder_output)
+        return head_output
+    
+
 class Mobilenetv2Backbone(Mobilenetv2):
     def __init__(self,
                  **kwargs):
@@ -201,6 +305,8 @@ class Mobilenetv2Backbone(Mobilenetv2):
             features.append(x)
 
         return features
+    
+
 
 class Mobilenetv2Decoder(nn.Module):
     def __init__(self):

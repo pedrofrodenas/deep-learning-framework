@@ -8,11 +8,12 @@ from .modules import Activation
 class SegmentationHead(nn.Module):
     def __init__(self,
                  classes: int = 1000,
+                 input_chn = 16,
                  activation=None):
 
         super(SegmentationHead, self).__init__()
         
-        self.conv2d = nn.Conv2d(16, classes, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        self.conv2d = nn.Conv2d(input_chn, classes, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
         self.activation = Activation(activation)
 
         # Initialization
