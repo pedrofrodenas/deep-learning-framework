@@ -226,7 +226,7 @@ class Resnet18Segmentation(nn.Module):
 
         self.resnet18_encoder = Resnet18Backbone()
         self.unet_decoder = UnetDecoder()
-        self.segmentation_head = SegmentationHead(classes, activation)
+        self.segmentation_head = SegmentationHead(classes, input_chn=16, activation=activation)
 
     def forward(self, x):
 

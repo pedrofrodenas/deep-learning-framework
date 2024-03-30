@@ -358,7 +358,7 @@ class Mobilenetv2Segmentation(nn.Module):
 
         self.mobilenetv2_encoder = Mobilenetv2Backbone()
         self.mobilenetv2_decoder = Mobilenetv2Decoder()
-        self.segmentation_head = SegmentationHead(classes, activation)
+        self.segmentation_head = SegmentationHead(classes, input_chn = 16, activation = activation)
 
     def forward(self, x):
         features = self.mobilenetv2_encoder(x)

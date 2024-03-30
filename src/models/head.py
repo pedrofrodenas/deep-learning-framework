@@ -8,7 +8,7 @@ from .modules import Activation
 class SegmentationHead(nn.Module):
     def __init__(self,
                  classes: int = 1000,
-                 input_chn = 16,
+                 input_chn: int = 16,
                  activation=None):
 
         super(SegmentationHead, self).__init__()
