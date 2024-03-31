@@ -18,7 +18,12 @@ def full_post_transform(image ,**kwargs):
         return image.transpose(0,3, 1, 2).astype("float32")
     elif image.ndim == 3:
         return image.astype("float32")
+    
+# --------------------------------------------------------------------
+# VOC Dataset
+# --------------------------------------------------------------------
 
+VOC_post_transform = A.Lambda(name="post_transform", image=post_transform)
 
 # --------------------------------------------------------------------
 # Segmentation transforms
