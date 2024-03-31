@@ -57,9 +57,9 @@ def main(cfg):
 
     x = torch.randn(1,3, 512, 512).to(device)
 
-    dot = make_dot(model(x), params=dict(model.named_parameters()))
-    dot.format = 'svg'
-    dot.render('unet.svg')
+    # dot = make_dot(model(x), params=dict(model.named_parameters()))
+    # dot.format = 'svg'
+    # dot.render('unet.svg')
 
     # --------------------------------------------------
     # define datasets and dataloaders

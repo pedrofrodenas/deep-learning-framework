@@ -3,7 +3,7 @@ gpus: [0]
 
 # define model
 model:
-  architecture: Mobilenetv2Segmentation
+  architecture: Unet
   init_params:
     encoder_name: mobilenet_v2
     encoder_weights: imagenet
@@ -55,11 +55,11 @@ training:
     mask:
       - name: IoU
         init_params: 
-          threshold: None
+          threshold: null
           per_image: true
       - name: DiceCoef
         init_params:
-          threshold: None
+          threshold: null
           per_image: true
 
   # callbacks:
