@@ -66,10 +66,7 @@ def iou(pr, gt, eps=1e-7, threshold=None, ignore_channels=None,
     pr = _threshold(pr, threshold=threshold)
     pr, gt = _ignore_channels(pr, gt, ignore_channels=ignore_channels)
     pr, gt = _take_channels(pr, gt, take_channels=take_channels)
-    #pr, gt = _take_non_empty(pr, gt, drop_empty=drop_empty)
 
-    # if gt.nelement() == 0:
-    #     return 1.
 
     intersection = _sum(gt * pr, per_image)
     union = _sum(gt, per_image) + _sum(pr, per_image) - intersection
@@ -77,7 +74,7 @@ def iou(pr, gt, eps=1e-7, threshold=None, ignore_channels=None,
 
     if drop_empty:
         agg_mask = gt.sum(dim=(2, 3)) if per_image else gt.sum(dim=(0, 2, 3))
-        empty_mask = 1. - (agg_mask > 1).float()
+        empty_mask = 1. - (agg_mask >= 1).float()
         score = score * empty_mask
 
     return _average(score, class_weights)

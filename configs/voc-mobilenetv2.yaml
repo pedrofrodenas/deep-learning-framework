@@ -1,0 +1,85 @@
+logdir: logs/mobilenetv2
+gpus: [0]
+
+# define model
+model:
+  architecture: Mobilenetv2Segmentation
+  init_params:
+    encoder_name: mobilenet_v2
+    encoder_weights: imagenet
+    classes: 21 # 20 + Background
+    activation: softmax
+
+data:
+
+  # datasets
+  train_dataset:
+    name: VOCSegmentationDataset
+    init_params:
+      dst_root: data/raw
+      image_set: train
+      transform_name: VOC_train_transform
+      download: true
+
+  valid_dataset:
+    name: VOCSegmentationDataset
+    init_params:
+      dst_root: data/raw
+      image_set: val
+      transform_name: VOC_val_transform
+      download: true
+
+  # loaders
+  train_dataloader:
+    batch_size: 1
+    shuffle: true
+    drop_last: true
+    pin_memory: true
+    num_workers: 0
+
+  valid_dataloader:
+    batch_size: 2
+    shuffle: false
+    drop_last: false
+    pin_memory: true
+    num_workers: 0
+
+training:
+
+  losses:
+    mask:
+      name: CrossEntropyLoss
+      init_params:
+
+  metrics:
+    mask:
+      - name: IoU
+        init_params: 
+          threshold: None
+          per_image: true
+      - name: DiceCoef
+        init_params:
+          threshold: None
+          per_image: true
+
+  # callbacks:
+  #   mask:
+  #   - name: BatchNormFreezer
+  #     init_params:
+  #       start_epoch: 0
+  #       freeze_affine: false
+
+  optimizer:
+    name: Adam
+    init_params:
+      lr: 0.0001
+
+  scheduler:
+    name: PolyLR
+    init_params:
+      epochs: 50
+
+  fit:
+    epochs: 50
+    accumulation_steps: 4
+    verbose: true

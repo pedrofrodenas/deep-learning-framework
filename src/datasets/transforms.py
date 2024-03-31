@@ -1,5 +1,6 @@
 import warnings
 import albumentations as A
+import cv2
 
 warnings.simplefilter("ignore")
 
@@ -24,6 +25,22 @@ def full_post_transform(image ,**kwargs):
 # --------------------------------------------------------------------
 
 VOC_post_transform = A.Lambda(name="post_transform", image=post_transform)
+
+VOC_train_transform = A.Compose(
+    [
+        A.PadIfNeeded(min_height=256, min_width=256, border_mode=cv2.BORDER_CONSTANT),
+        A.HorizontalFlip(p=0.5),
+        A.RandomCrop(256, 256),
+        A.ShiftScaleRotate(shift_limit=0.00, scale_limit=0.05, rotate_limit=15, p=0.4),
+        A.RGBShift(r_shift_limit=15, g_shift_limit=15, b_shift_limit=15, p=0.5),
+        A.RandomBrightnessContrast(p=0.2),
+        VOC_post_transform,
+    ]
+)
+
+VOC_val_transform = A.Compose([
+    VOC_post_transform,
+])
 
 # --------------------------------------------------------------------
 # Segmentation transforms
