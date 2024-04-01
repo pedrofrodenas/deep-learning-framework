@@ -1,5 +1,7 @@
 import warnings
 import albumentations as A
+from albumentations.pytorch.transforms import ToTensorV2
+from albumentations.core.transforms_interface import ImageOnlyTransform
 import cv2
 
 warnings.simplefilter("ignore")
@@ -20,11 +22,23 @@ def full_post_transform(image ,**kwargs):
     elif image.ndim == 3:
         return image.astype("float32")
     
+class ImageHWCtoCHW(ImageOnlyTransform):
+    """
+    RamdomA transformation
+    """
+    def __init__(self) -> None:
+        super(ImageHWCtoCHW, self).__init__(p=1)
+
+    def apply(self, image, **kwargs):
+        if image.ndim == 3:
+            return image.transpose(2, 0, 1).astype("float32")
+        else:
+            return image.astype("float32")
+    
 # --------------------------------------------------------------------
 # VOC Dataset
 # --------------------------------------------------------------------
 
-VOC_post_transform = A.Lambda(name="post_transform", image=post_transform)
 
 VOC_train_transform = A.Compose(
     [
@@ -34,7 +48,7 @@ VOC_train_transform = A.Compose(
         A.ShiftScaleRotate(shift_limit=0.00, scale_limit=0.05, rotate_limit=15, p=0.4),
         A.RGBShift(r_shift_limit=15, g_shift_limit=15, b_shift_limit=15, p=0.5),
         A.RandomBrightnessContrast(p=0.2),
-        VOC_post_transform,
+        ImageHWCtoCHW(),
     ]
 )
 
@@ -42,7 +56,7 @@ VOC_val_transform = A.Compose([
     A.PadIfNeeded(min_height=512, min_width=512, border_mode=cv2.BORDER_CONSTANT),
     A.LongestMaxSize(max_size=256, interpolation=1, always_apply=False, p=1),
     A.RandomCrop(height=224, width=224, always_apply=False, p=1),
-    VOC_post_transform,
+    ImageHWCtoCHW(),
 ])
 
 # --------------------------------------------------------------------
@@ -59,7 +73,7 @@ train_transform = A.Compose([
     A.OneOf([A.RandomBrightnessContrast(p=0.1),
              A.CLAHE(p=0.3),
              A.GaussianBlur(3, p=0.3),
-             A.IAASharpen(alpha=(0.1, 0.22), p=0.3),
+             A.Sharpen(alpha=(0.1, 0.22), p=0.3),
              A.RandomGamma(p=0.1)]),
     post_transform
     ])
@@ -106,7 +120,7 @@ train_transform_2 = A.Compose([
         [
             A.GaussNoise(p=1),
             A.MultiplicativeNoise(p=1),
-            A.IAASharpen(p=1),
+            A.Sharpen(p=1),
             # A.ImageCompression(quality_lower=0.7, p=1),
             A.GaussianBlur(p=1),
         ],
@@ -144,7 +158,7 @@ train_transform_3 = A.Compose([
         [
             A.GaussNoise(p=1),
             A.MultiplicativeNoise(p=1),
-            A.IAASharpen(p=1),
+            A.Sharpen(p=1),
             # A.ImageCompression(quality_lower=0.7, p=1),
             A.GaussianBlur(p=1),
         ],
@@ -184,7 +198,7 @@ train_transform_4 = A.Compose([
             A.ElasticTransform(p=1),
             A.OpticalDistortion(p=1),
             A.GridDistortion(p=1),
-            A.IAAPerspective(p=1),
+            A.Perspective(p=1),
         ],
         p=0.2,
     ),
@@ -194,7 +208,7 @@ train_transform_4 = A.Compose([
         [
             A.GaussNoise(p=1),
             A.MultiplicativeNoise(p=1),
-            A.IAASharpen(p=1),
+            A.Sharpen(p=1),
             A.GaussianBlur(p=1),
         ],
         p=0.2,

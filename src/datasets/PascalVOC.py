@@ -138,9 +138,12 @@ class VOCSegmentationDataset(Dataset):
         )
 
         # apply augmentations
+        # We cannot convert from HWC to CHW in this step
         if self.transform is not None:
             sample = self.transform(**sample)
 
+        # That transformation HWC to CHW should be applied in this step
+        # in order to convert mask to one-hot encoding sucessfully
         sample["mask"] = self.onehot_encode(sample["mask"])
 
         return sample

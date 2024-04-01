@@ -1,4 +1,4 @@
-logdir: logs/mobilenetv2
+logdir: logs/VOCmobilenetv2
 gpus: [0]
 
 # define model
@@ -31,25 +31,33 @@ data:
 
   # loaders
   train_dataloader:
-    batch_size: 32
+    batch_size: 8
     shuffle: true
     drop_last: true
     pin_memory: true
-    num_workers: 0
+    num_workers: 4
+    # Only needed for MacOS M1, remove if not the case
+    multiprocessing_context: forkserver # Only needed in MacOS M1
+    persistent_workers: true # Only needed in MacOS M1
 
   valid_dataloader:
-    batch_size: 16
+    batch_size: 8
     shuffle: false
     drop_last: false
     pin_memory: true
-    num_workers: 0
+    num_workers: 4
+    # Only needed for MacOS M1, remove if not the case
+    multiprocessing_context: forkserver # Only needed in MacOS M1
+    persistent_workers: true # Only needed in MacOS M1
+    
 
 training:
 
   losses:
     mask:
-      name: CrossEntropyLoss
+      name: JaccardLoss
       init_params:
+        per_image: true
 
   metrics:
     mask:
@@ -72,14 +80,14 @@ training:
   optimizer:
     name: Adam
     init_params:
-      lr: 0.001
+      lr: 0.0001
 
   scheduler:
     name: PolyLR
     init_params:
-      epochs: 200
+      epochs: 250
 
   fit:
-    epochs: 200
+    epochs: 250
     accumulation_steps: 4
     verbose: true
