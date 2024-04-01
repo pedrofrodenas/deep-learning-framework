@@ -72,14 +72,14 @@ training:
   optimizer:
     name: Adam
     init_params:
-      lr: 0.0001
+      lr: 0.001
 
   scheduler:
     name: PolyLR
     init_params:
-      epochs: 50
+      epochs: 200
 
   fit:
-    epochs: 50
+    epochs: 200
     accumulation_steps: 4
     verbose: true
