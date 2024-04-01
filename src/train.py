@@ -42,6 +42,8 @@ def main(cfg):
     else:
         device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 
+    print(f"Selected device: {device}")
+
     model = getters.get_model(architecture=cfg.model.architecture, init_params=cfg.model.init_params)
 
     print('Moving model to device...')

@@ -31,14 +31,14 @@ data:
 
   # loaders
   train_dataloader:
-    batch_size: 1
+    batch_size: 32
     shuffle: true
     drop_last: true
     pin_memory: true
     num_workers: 0
 
   valid_dataloader:
-    batch_size: 2
+    batch_size: 16
     shuffle: false
     drop_last: false
     pin_memory: true

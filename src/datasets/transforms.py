@@ -39,6 +39,9 @@ VOC_train_transform = A.Compose(
 )
 
 VOC_val_transform = A.Compose([
+    A.PadIfNeeded(min_height=512, min_width=512, border_mode=cv2.BORDER_CONSTANT),
+    A.LongestMaxSize(max_size=256, interpolation=1, always_apply=False, p=1),
+    A.RandomCrop(height=224, width=224, always_apply=False, p=1),
     VOC_post_transform,
 ])
 
