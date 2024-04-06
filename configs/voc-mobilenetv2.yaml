@@ -3,7 +3,7 @@ gpus: [0]
 
 # define model
 model:
-  architecture: Unet
+  architecture: Mobilenetv2Segmentation
   init_params:
     encoder_name: mobilenet_v2
     encoder_weights: imagenet
