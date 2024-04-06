@@ -3,6 +3,7 @@ import segmentation_models_pytorch as smp
 from .training import losses, metrics, optimizers, callbacks
 from . import datasets
 from . import models
+from . import interpreters
 
 
 def get_model(architecture, init_params):
@@ -53,3 +54,9 @@ def get_callback(name, init_pararams):
     callback_class = callbacks.__dict__[name]
     callback = callback_class(**init_pararams)
     return callback
+
+def get_interpreter(name, init_params):
+    init_params = init_params or {}
+    interpreter_class = interpreters.__dict__[name]
+    interpreter = interpreter_class(**init_params)
+    return interpreter

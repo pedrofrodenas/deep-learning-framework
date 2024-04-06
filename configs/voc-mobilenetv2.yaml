@@ -1,4 +1,4 @@
-logdir: logs/VOCmobilenetv2
+logdir: logs/mobilenetv2
 gpus: [0]
 
 # define model
@@ -45,10 +45,10 @@ data:
     shuffle: false
     drop_last: false
     pin_memory: true
-    num_workers: 4
+    num_workers: 1
     # Only needed for MacOS M1, remove if not the case
-    multiprocessing_context: forkserver # Only needed in MacOS M1
-    persistent_workers: true # Only needed in MacOS M1
+    # multiprocessing_context: forkserver # Only needed in MacOS M1
+    # persistent_workers: true # Only needed in MacOS M1
     
 
 training:
@@ -91,3 +91,10 @@ training:
     epochs: 250
     accumulation_steps: 4
     verbose: true
+
+prediction:
+    datainterpreter:
+      name: VOCInterpreter
+      init_params:
+        log_dir: logs/mobilenetv2
+        save_results: true 
