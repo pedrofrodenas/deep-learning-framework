@@ -8,7 +8,7 @@ model:
     encoder_name: mobilenet_v2
     encoder_weights: imagenet
     classes: 21 # 20 + Background
-    activation: softmax
+    activation:
 
 data:
 
@@ -35,17 +35,17 @@ data:
     shuffle: true
     drop_last: true
     pin_memory: true
-    num_workers: 4
+    num_workers: 0
     # Only needed for MacOS M1, remove if not the case
-    multiprocessing_context: forkserver # Only needed in MacOS M1
-    persistent_workers: true # Only needed in MacOS M1
+    # multiprocessing_context: forkserver # Only needed in MacOS M1
+    # persistent_workers: true # Only needed in MacOS M1
 
   valid_dataloader:
     batch_size: 8
     shuffle: false
     drop_last: false
     pin_memory: true
-    num_workers: 1
+    num_workers: 0
     # Only needed for MacOS M1, remove if not the case
     # multiprocessing_context: forkserver # Only needed in MacOS M1
     # persistent_workers: true # Only needed in MacOS M1
@@ -55,9 +55,8 @@ training:
 
   losses:
     mask:
-      name: JaccardLoss
+      name: CrossEntropyLoss
       init_params:
-        per_image: true
 
   metrics:
     mask:

@@ -68,10 +68,13 @@ class VOCSegmentationDataset(Dataset):
             ids: Optional[list] = None,
             transform_name: Optional[str] = None,
             download : Optional[bool] = False,
+            one_hot_encode : Optional[bool] = False,
     ):
         super().__init__()
 
         voc_root = os.path.join(dst_root, _BASEDIR)
+
+        self.one_hot_encode = one_hot_encode 
 
         self.transform = transforms.__dict__[transform_name] if transform_name else None
 
@@ -142,17 +145,37 @@ class VOCSegmentationDataset(Dataset):
         if self.transform is not None:
             sample = self.transform(**sample)
 
-        # That transformation HWC to CHW should be applied in this step
-        # in order to convert mask to one-hot encoding sucessfully
-        sample["mask"] = self.onehot_encode(sample["mask"])
+        if self.one_hot_encode:
+            # That transformation HWC to CHW should be applied in this step
+            # in order to convert mask to one-hot encoding sucessfully
+            sample["mask"] = self.onehot_encode(sample["mask"])
+        else:
+            sample["mask"] = self.index_encode(sample["mask"])
 
         return sample
+    
+    def index_encode(self, voc_color_mask):
+        # In pytorch CrossEntropyLoss does't need a one-hoy
+        # encoded mask only an integer indicating the class type
+        # In tensorflow masks in semantic segmentation should be
+        # codified as one-hot encoded, in Pytorch is not neccessary
+        # because CrossEntropyLoss is different from CategoricalCrossEntropy
+        # from tensorflow
+        num_classes = len(self.color_map)
+        integer_mask = torch.zeros((1, voc_color_mask.shape[0], voc_color_mask.shape[1]))
+        for class_idx, color in self.color_map.items():
+            mask = np.all(voc_color_mask == color, axis=2)
+            mask_int = mask.astype('uint8') * class_idx
+            integer_mask += mask_int
+        
+        return integer_mask
+
     
     def onehot_encode(self, voc_color_mask):
         # If we are going to train semantic segmentation model,
         # the number of chanels of the mask should equal number
         # of classes and with 1's in the channel that the class
-        # belongs
+        # belongs [Tensorflow Format]
         # Create one-hot encoded mask
         num_classes = len(self.color_map)
         one_hot_mask = torch.zeros((voc_color_mask.shape[0], voc_color_mask.shape[1], num_classes))
