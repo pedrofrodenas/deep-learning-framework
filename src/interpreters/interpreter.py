@@ -1,6 +1,8 @@
 import os
-import numpy as np
+
 import cv2
+import numpy as np
+from torch import nn
 
 class VOCInterpreter():
     def __init__(self, 
@@ -11,14 +13,18 @@ class VOCInterpreter():
         self.save_results = save_results
         self.dst_dir = os.path.join(log_dir, "inference")
 
+        self.softmax = nn.Softmax()
+
         if save_results:
             if not os.path.exists(self.dst_dir):
                 os.makedirs(self.dst_dir)
 
     def __call__(self, dataloader_output, predictions):
 
+        # Apply softmax activation function to logits
+        softmax_output = self.softmax(predictions['mask'])
         # Turn channel dim to last dimension and convert to numpy
-        one_hot_mask = predictions['mask'].permute(0, 2, 3, 1).cpu().numpy()
+        one_hot_mask = softmax_output.permute(0, 2, 3, 1).cpu().numpy()
         original_images = dataloader_output['image'].permute(0, 2, 3, 1).cpu().numpy()
         ids = dataloader_output['id']
 
