@@ -14,7 +14,7 @@ from .training.config import parse_config, save_config
 from .training.runner import GPUNormRunner
 from .util import utils
 
-from torchviz import make_dot
+# from torchviz import make_dot
 
 cudnn.benchmark = True
 

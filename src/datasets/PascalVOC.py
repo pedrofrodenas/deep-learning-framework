@@ -148,9 +148,9 @@ class VOCSegmentationDataset(Dataset):
         if self.one_hot_encode:
             # That transformation HWC to CHW should be applied in this step
             # in order to convert mask to one-hot encoding sucessfully
-            sample["mask"] = self.onehot_encode(sample["mask"])
+            sample["mask"] = self.onehot_encode(sample["mask"]).long()
         else:
-            sample["mask"] = self.index_encode(sample["mask"])
+            sample["mask"] = self.index_encode(sample["mask"]).long()
 
         return sample
     
