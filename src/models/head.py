@@ -13,12 +13,7 @@ class SegmentationHead(nn.Module):
 
         super(SegmentationHead, self).__init__()
         
-        self.conv2d = nn.Conv2d(input_chn, classes, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
-
-        if classes != 1:
-            self.convflat = nn.Conv2d(classes, 1, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0), bias=False)
-        else:
-            self.convflat = None
+        self.conv2d = nn.Conv2d(input_chn, classes, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
         self.activation = Activation(activation)
 
         # Initialization
@@ -30,7 +25,5 @@ class SegmentationHead(nn.Module):
 
     def forward(self, x):
         x = self.conv2d(x)
-        if self.convflat:
-            x = self.convflat(x)
         x = self.activation(x)
         return x

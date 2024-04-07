@@ -35,20 +35,20 @@ data:
     shuffle: true
     drop_last: true
     pin_memory: true
-    num_workers: 0
+    num_workers: 4
     # Only needed for MacOS M1, remove if not the case
-    # multiprocessing_context: forkserver # Only needed in MacOS M1
-    # persistent_workers: true # Only needed in MacOS M1
+    multiprocessing_context: forkserver # Only needed in MacOS M1
+    persistent_workers: true # Only needed in MacOS M1
 
   valid_dataloader:
     batch_size: 8
     shuffle: false
     drop_last: false
     pin_memory: true
-    num_workers: 0
+    num_workers: 4
     # Only needed for MacOS M1, remove if not the case
-    # multiprocessing_context: forkserver # Only needed in MacOS M1
-    # persistent_workers: true # Only needed in MacOS M1
+    multiprocessing_context: forkserver # Only needed in MacOS M1
+    persistent_workers: true # Only needed in MacOS M1
     
 
 training:
@@ -62,10 +62,7 @@ training:
     mask:
       - name: IoU
         init_params: 
-          threshold: null
-          per_image: true
-      - name: DiceCoef
-        init_params:
+          activation: softmax
           threshold: null
           per_image: true
 

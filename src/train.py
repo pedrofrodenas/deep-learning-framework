@@ -12,6 +12,7 @@ from . import getters
 from . import training
 from .training.config import parse_config, save_config
 from .training.runner import GPUNormRunner
+from .util import utils
 
 from torchviz import make_dot
 
@@ -45,6 +46,9 @@ def main(cfg):
     print(f"Selected device: {device}")
 
     model = getters.get_model(architecture=cfg.model.architecture, init_params=cfg.model.init_params)
+
+    num_parameters = utils.count_parameters(model)
+    print(f"Number of trainable parameters: {num_parameters}")
 
     print('Moving model to device...')
     model.to(device)
@@ -153,7 +157,7 @@ def main(cfg):
         # checkpointing
         callbacks.append(training.callbacks.ModelCheckpoint(
             directory=os.path.join(cfg.logdir, 'checkpoints'),
-            monitor="val_mask_" + metrics["mask"][1].__name__,
+            monitor="val_mask_" + metrics["mask"][0].__name__,
             save_best=True,
             save_top_k=20,
             mode="max",
