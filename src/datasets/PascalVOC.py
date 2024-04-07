@@ -162,7 +162,7 @@ class VOCSegmentationDataset(Dataset):
         # because CrossEntropyLoss is different from CategoricalCrossEntropy
         # from tensorflow
         num_classes = len(self.color_map)
-        integer_mask = torch.zeros((1, voc_color_mask.shape[0], voc_color_mask.shape[1]))
+        integer_mask = torch.zeros((voc_color_mask.shape[0], voc_color_mask.shape[1]))
         for class_idx, color in self.color_map.items():
             mask = np.all(voc_color_mask == color, axis=2)
             mask_int = mask.astype('uint8') * class_idx

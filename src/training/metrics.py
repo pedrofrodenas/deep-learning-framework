@@ -3,6 +3,35 @@ from . import base
 from . import functional as F
 from . import _modules as modules
 
+from torchmetrics import JaccardIndex
+
+class Jacard(base.Metric):
+    __name__ = "jacard_index"
+
+    def __init__(self, task, threshold=None, activation=None, ignore_index=None,
+                 num_classes=None, num_labels=None, average='macro', validate_args=True, **kwargs):
+        super().__init__(**kwargs)
+        self.threshold = threshold
+        self.activation = modules.Activation(activation, dim=1)
+        self.task = task
+        self.ignore_index = ignore_index
+        self.num_classes = num_classes
+        self.num_labels = num_labels
+        self.average = average
+        self.validate_args = validate_args
+
+        self.jaccard = JaccardIndex(task=self.task, 
+                                    num_classes=self.num_classes, 
+                                    threshold=self.threshold,
+                                    num_labels=self.num_labels,
+                                    average=self.average,
+                                    ignore_index=self.ignore_index,
+                                    validate_args=self.validate_args)
+
+    @torch.no_grad()
+    def forward(self, y_pr, y_gt):
+        y_pr = self.activation(y_pr)
+        return self.jaccard(y_pr, y_gt)
 
 
 class IoU(base.Metric):
