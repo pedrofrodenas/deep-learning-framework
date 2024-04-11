@@ -10,8 +10,8 @@ from . import transforms
 
 warnings.simplefilter("ignore")
 
-
-class SegmentationDataset(Dataset):
+    
+class BinarySegmentationDataset(Dataset):
 
     def __init__(
             self,
@@ -34,6 +34,10 @@ class SegmentationDataset(Dataset):
         image_path = os.path.join(self.images_dir, id)
         mask_path = os.path.join(self.masks_dir, id)
 
+        if not os.path.isfile(mask_path):
+            new_id = id.replace(".jpg", ".png")
+            mask_path = os.path.join(self.masks_dir, new_id)
+
         # read data sample
         sample = dict(
             id=id,
@@ -50,12 +54,15 @@ class SegmentationDataset(Dataset):
         return sample
 
     def read_image(self, path):
-        image = Image.open(path)
+        image = Image.open(path).convert("RGB")
         return np.array(image)
 
     def read_mask(self, path):
-        image = self.read_image(path)
-        return image/255
+        mask = Image.open(path)
+        mask = mask.convert('L')
+        mask = np.array(mask)
+        mask = (mask > 0).astype('float32')
+        return mask
     
 class PredictionDataset(Dataset):
 

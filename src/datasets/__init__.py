@@ -1,2 +1,2 @@
-from .datasets import SegmentationDataset, PredictionDataset
+from .datasets import PredictionDataset, BinarySegmentationDataset
 from .PascalVOC import VOCSegmentationDataset, VOC_onehot2Color
