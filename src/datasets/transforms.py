@@ -40,6 +40,29 @@ class ImageHWCtoCHW(ImageOnlyTransform):
         else:
             return image.astype("float32")
         
+class Threshold(DualTransform):
+    """Apply threshold to mask without modifying the input image
+    Image types:
+        uint8, float32
+    """
+
+    def __init__(
+        self,
+        threshold: float = 0.5,
+        always_apply: bool = False,
+        p: float = 1,
+    ):
+        super().__init__(always_apply, p)
+        self.threshold = threshold
+
+    def apply(
+        self, img: np.ndarray, **params: Any
+    ) -> np.ndarray:
+        return img
+    
+    def apply_to_mask(self, mask: np.ndarray, *args: Any, **params: Any) -> np.ndarray:
+        return (mask >= 0.5).astype('float64')
+        
 class LongestMaxSizeCustom(DualTransform):
     """Rescale an image so that maximum side is equal to max_size, keeping the aspect ratio of the initial image.
 
