@@ -56,6 +56,8 @@ class InvertedResidual(nn.Module):
             )
         )
         # Squeeze-and-Excite, if its present in this layer
+        # It uses ReLU , not ReLU6 as described in the original paper
+        # it also uses Conv2D rather than fully-connected layers
         if SE:
             squeeze_channels = make_divisible(hidden // 4, 8)
             layers.append(SqueezeExcitation(hidden, squeeze_channels, scale_activation=nn.Hardsigmoid))
@@ -176,6 +178,34 @@ class Mobilenetv3_small(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         return self._forward_impl(x)
+    
+
+class Mobilenetv3_small_Backbone(Mobilenetv3_small):
+    def __init__(self,
+                 **kwargs):
+        super(Mobilenetv3_small_Backbone, self).__init__()
+
+        # We delete classification layers
+        del self.classifier
+        del self.avgpool
+
+    def get_forward_outputs(self):
+        return [
+            self.features[0],
+            self.features[1],
+            self.features[2:4],
+            self.features[4:9],
+            self.features[9:],
+        ]
+    
+    def forward(self, x):
+
+        features = []
+        stages = self.get_forward_outputs()
+        for i in range(len(stages)):
+            x = stages[i](x)
+            features.append(x)
+        return features
 
 
 
