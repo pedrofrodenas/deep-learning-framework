@@ -1,6 +1,7 @@
 from typing import List
 from functools import partial
 
+import torch
 import torch.nn as nn
 from torch import Tensor
 from torchvision.ops.misc import Conv2dNormActivation, SqueezeExcitation
@@ -57,7 +58,7 @@ class InvertedResidual(nn.Module):
         # Squeeze-and-Excite, if its present in this layer
         if SE:
             squeeze_channels = make_divisible(hidden // 4, 8)
-            layers.append(SqueezeExcitation(hidden, squeeze_channels, activation=nn.Hardsigmoid))
+            layers.append(SqueezeExcitation(hidden, squeeze_channels, scale_activation=nn.Hardsigmoid))
 
         # Linear projection, (no activation function)
         layers.append(
@@ -68,24 +69,26 @@ class InvertedResidual(nn.Module):
         self.block = nn.Sequential(*layers)
 
     def forward(self, x):
-        result = self.block(input)
+        result = self.block(x)
         if self.use_res_connect:
-            result += input
+            result += x
         return result
 
 
-class Mobilenetv3(nn.Module):
+class Mobilenetv3_small(nn.Module):
     def __init__(self,
                  num_classes: int = 1000,
                  width_mult: float = 1.0,
                  dropout: float = 0.2,
                  pretrained = True,
                  **kwargs):
-        super(Mobilenetv3, self).__init__()
+        super(Mobilenetv3_small, self).__init__()
 
         first_layer_output = 16
         last_channel = 1024
         norm_layer = partial(nn.BatchNorm2d, eps=0.001, momentum=0.01)
+
+        self.weights_url = "https://download.pytorch.org/models/mobilenet_v3_small-047dcff4.pth"
 
         settings = [
             # inputs, k_size, expansion_dim, outputs, Squeeze-Excite, Activation, Stride, 
@@ -141,8 +144,38 @@ class Mobilenetv3(nn.Module):
             nn.Linear(last_channel, num_classes),
         )
 
-        # Layer initialization
+        # weight initialization
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode="fan_out")
+                if m.bias is not None:
+                    nn.init.zeros_(m.bias)
+            elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
+                nn.init.ones_(m.weight)
+                nn.init.zeros_(m.bias)
+            elif isinstance(m, nn.Linear):
+                nn.init.xavier_uniform_(m.weight)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+
+        # Load pretrained weights
+        if pretrained:
+            # Weights initialization
+            state_dict = torch.hub.load_state_dict_from_url(self.weights_url)
+            super().load_state_dict(state_dict)
         
+    def _forward_impl(self, x: Tensor) -> Tensor:
+        x = self.features(x)
+
+        x = self.avgpool(x)
+        x = torch.flatten(x, 1)
+
+        x = self.classifier(x)
+
+        return x
+
+    def forward(self, x: Tensor) -> Tensor:
+        return self._forward_impl(x)
 
 
 

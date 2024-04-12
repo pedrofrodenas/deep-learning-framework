@@ -3,7 +3,7 @@ gpus: [0]
 
 # define model
 model:
-  architecture: Mobilenetv2Segmentation
+  architecture: Mobilenetv3_small
   init_params:
     encoder_name: mobilenet_v2
     encoder_weights: imagenet
@@ -14,14 +14,14 @@ data:
 
   # datasets
   train_dataset:
-    name: SegmentationDataset
+    name: BinarySegmentationDataset
     init_params:
       images_dir: ./data/preprocessed/train/images
       masks_dir: ./data/preprocessed/train/masks
       transform_name: train_transform
 
   valid_dataset:
-    name: SegmentationDataset
+    name: BinarySegmentationDataset
     init_params:
       images_dir: ./data/preprocessed/validation/images
       masks_dir: ./data/preprocessed/validation/masks
