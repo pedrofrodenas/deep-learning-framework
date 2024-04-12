@@ -61,7 +61,7 @@ def main(cfg):
         model = torch.nn.DataParallel(model)
         model.to(device)
 
-    x = torch.randn(1,3, 512, 512).to(device)
+    x = torch.randn(1,3, 224, 224).to(device)
 
     # dot = make_dot(model(x), params=dict(model.named_parameters()))
     # dot.format = 'svg'

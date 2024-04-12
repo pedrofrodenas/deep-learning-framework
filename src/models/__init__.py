@@ -12,4 +12,5 @@ from .mobilenetv2 import (
 
 from .mobilenetv3 import (
     Mobilenetv3_small,
+    Mobilenetv3_small_Segmentation,
 )

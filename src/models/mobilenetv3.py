@@ -6,6 +6,8 @@ import torch.nn as nn
 from torch import Tensor
 from torchvision.ops.misc import Conv2dNormActivation, SqueezeExcitation
 
+from .decoders import DecoderBlock
+from .head import SegmentationHead
 from .utils import make_divisible
 
 class InvertedResidual(nn.Module):
@@ -206,7 +208,63 @@ class Mobilenetv3_small_Backbone(Mobilenetv3_small):
             x = stages[i](x)
             features.append(x)
         return features
+    
+class Mobilenetv3_small_Decoder(nn.Module):
+    def __init__(self):
+        super(Mobilenetv3_small_Decoder, self).__init__()
 
+        # out_channels = [256, 128, 64, 32, 16] estos son fijos
+        # input channels are number of channels of features from encoder + cocatenation of
+        # previous layer output
+        self.block0 = DecoderBlock(624, 256)
+        self.block1 = DecoderBlock(280, 128)
+        self.block2 = DecoderBlock(144, 64)
+        self.block3 = DecoderBlock(80, 32)
+        # Last block has no concatenation from encoder, input channel equals last block
+        self.block4 = DecoderBlock(32, 16)
+
+        # Layer initialization
+        for m in self.modules():
+
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_uniform_(m.weight, mode="fan_in", nonlinearity="relu")
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+
+            elif isinstance(m, nn.Linear):
+                nn.init.xavier_uniform_(m.weight)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+
+    def forward(self, *features):
+    
+        x = self.block0(features[4], features[3])
+        x = self.block1(x, features[2])
+        x = self.block2(x, features[1])
+        x = self.block3(x, features[0])
+        x = self.block4(x)
+        return x
+
+class Mobilenetv3_small_Segmentation(nn.Module):
+    def __init__(self,
+                 classes: int = 1000,
+                 activation=None,
+                 **kwargs):
+        super(Mobilenetv3_small_Segmentation, self).__init__()
+
+        self.mobilenetv3_encoder = Mobilenetv3_small_Backbone()
+        self.mobilenetv3_decoder = Mobilenetv3_small_Decoder()
+        self.segmentation_head = SegmentationHead(classes, input_chn = 16, activation = activation)
+
+    def forward(self, x):
+        features = self.mobilenetv3_encoder(x)
+        decoder_output = self.mobilenetv3_decoder(*features)
+        head_output = self.segmentation_head(decoder_output)
+        return head_output
 
 
 
