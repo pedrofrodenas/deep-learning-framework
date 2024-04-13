@@ -23,5 +23,8 @@ train:
 evaluate:
 	python -m src.eval --config=configs/pytorch-gen.yaml
 
+# If you are running in remote machine you need to open
+# browser in machine-IP:PORT
+# like http://192.168.30.10:16006
 tensorboard:
-	tensorboard --logdir=logs
+	tensorboard --logdir=logs --host 0.0.0.0 --port 6006
