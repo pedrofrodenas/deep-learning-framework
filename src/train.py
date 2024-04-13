@@ -149,10 +149,6 @@ def main(cfg):
 
     # add default logging and checkpoint callbacks
     if cfg.logdir is not None:
-        # tb logging
-        # callbacks.append(training.callbacks.TensorBoard(
-        #     os.path.join(cfg.logdir, 'tb')
-        # ))
 
         # checkpointing
         callbacks.append(training.callbacks.ModelCheckpoint(

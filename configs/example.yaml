@@ -1,11 +1,11 @@
-logdir: logs/pytorch-gen
+logdir: logs/example
 gpus: [0]
 
 # define model
 model:
   architecture: Unet
   init_params:
-    encoder_name: resnet18
+    encoder_name: mobilenet_v2
     encoder_weights: imagenet
     classes: 1
     activation: sigmoid
@@ -14,14 +14,14 @@ data:
 
   # datasets
   train_dataset:
-    name: SegmentationDataset
+    name: BinarySegmentationDataset
     init_params:
       images_dir: ./data/preprocessed/train/images
       masks_dir: ./data/preprocessed/train/masks
       transform_name: train_transform
 
   valid_dataset:
-    name: SegmentationDataset
+    name: BinarySegmentationDataset
     init_params:
       images_dir: ./data/preprocessed/validation/images
       masks_dir: ./data/preprocessed/validation/masks
@@ -29,14 +29,14 @@ data:
 
   # loaders
   train_dataloader:
-    batch_size: 1
+    batch_size: 8
     shuffle: true
     drop_last: true
     pin_memory: true
     num_workers: 0
 
   valid_dataloader:
-    batch_size: 2
+    batch_size: 8
     shuffle: false
     drop_last: false
     pin_memory: true
@@ -51,19 +51,20 @@ training:
 
   metrics:
     mask:
-      - name: MicroIoU
-        init_params:
       - name: DiceCoef
         init_params:
-      - name: IoU
+      - name: MicroIoU
         init_params:
 
   callbacks:
     mask:
-    - name: BatchNormFreezer
+    - name: TensorBoard
       init_params:
-        start_epoch: 0
-        freeze_affine: false
+        log_dir: logs/mobilenetv2
+    # - name: BatchNormFreezer
+    #   init_params:
+    #     start_epoch: 0
+    #     freeze_affine: false
 
   optimizer:
     name: Adam
@@ -79,7 +80,3 @@ training:
     epochs: 50
     accumulation_steps: 4
     verbose: true
-
-prediction:
-    # Source path using inside docker filesystem path
-    epoch:
