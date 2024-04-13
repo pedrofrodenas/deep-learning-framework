@@ -9,6 +9,9 @@ from collections import deque
 import torch
 from typing import List, Tuple
 
+# For tensorboard callback
+import tensorflow as tf
+
 
 class CallbackList(object):
     """Container abstracting a list of callbacks.
@@ -268,55 +271,53 @@ class ModelCheckpoint(Callback):
                         break
 
 
-# class TensorBoard(Callback):
-#     """TensorBoard basic visualizations.
-#     [TensorBoard](https://www.tensorflow.org/get_started/summaries_and_tensorboard)
-#     is a visualization tool provided with TensorFlow.
-#     This callback writes a log for TensorBoard, which allows
-#     you to visualize dynamic graphs of your training and test
-#     metrics, as well as activation histograms for the different
-#     layers in your model.
-#     If you have installed TensorFlow with pip, you should be able
-#     to launch TensorBoard from the command line:
-#     ```sh
-#     tensorboard --logdir=/full_path_to_your_logs
-#     ```
-#     When using a backend other than TensorFlow, TensorBoard will still work
-#     (if you have TensorFlow installed), but the only feature available will
-#     be the display of the losses and metrics plots.
-#     # Arguments
-#         log_dir: the path of the directory where to save the log
-#             files to be parsed by TensorBoard.
-#     """
+class TensorBoard(Callback):
+    """TensorBoard basic visualizations.
+    [TensorBoard](https://www.tensorflow.org/get_started/summaries_and_tensorboard)
+    is a visualization tool provided with TensorFlow.
+    This callback writes a log for TensorBoard, which allows
+    you to visualize dynamic graphs of your training and test
+    metrics, as well as activation histograms for the different
+    layers in your model.
+    If you have installed TensorFlow with pip, you should be able
+    to launch TensorBoard from the command line:
+    ```sh
+    tensorboard --logdir=/full_path_to_your_logs
+    ```
+    When using a backend other than TensorFlow, TensorBoard will still work
+    (if you have TensorFlow installed), but the only feature available will
+    be the display of the losses and metrics plots.
+    # Arguments
+        log_dir: the path of the directory where to save the log
+            files to be parsed by TensorBoard.
+    """
 
-#     def __init__(self, log_dir='./logs'):
-#         super(TensorBoard, self).__init__()
-#         self.log_dir = log_dir
+    def __init__(self, log_dir='./logs'):
+        super(TensorBoard, self).__init__()
+        self.log_dir = log_dir
 
-#         import tensorflow as tf
-#         self.writer = tf.summary.FileWriter(self.log_dir)
+        # Enable eager execution.
+        tf.compat.v1.enable_v2_behavior()
+        self.writer = tf.summary.create_file_writer(self.log_dir)
 
-#     def on_epoch_end(self, epoch, logs=None):
-#         logs = logs or {}
-#         self._write_logs(logs, epoch)
+    def on_epoch_end(self, epoch, logs=None):
+        logs = logs or {}
+        self._write_logs(logs, epoch)
 
-#     def _write_logs(self, logs, index):
-#         for name, value in logs.items():
-#             if name in ['batch', 'size']:
-#                 continue
-#             import tensorflow as tf
-#             summary = tf.Summary()
-#             summary_value = summary.value.add()
-#             if isinstance(value, np.ndarray):
-#                 summary_value.simple_value = value.item()
-#             else:
-#                 summary_value.simple_value = value
-#             summary_value.tag = name
-#             self.writer.add_summary(summary, index)
-#         self.writer.flush()
+    def _write_logs(self, logs, index):
+        for name, value in logs.items():
+            if name in ['batch', 'size']:
+                continue
 
-#     def __del__(self):
-#         self.writer.close()
+            with self.writer.as_default(step=index):
+                if isinstance(value, np.ndarray):
+                    tf.summary.scalar(name, value.item())
+                else:
+                    tf.summary.scalar(name, value)
+        self.writer.flush()
+
+    def __del__(self):
+        self.writer.close()
 
 
 class Scheduler(Callback):
