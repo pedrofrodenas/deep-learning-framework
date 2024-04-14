@@ -91,6 +91,36 @@ class VOCDataset(Dataset):
 
         assert len(self.images) == len(self.targets)
 
+        self.class_map = {"background": 0, "aeroplane": 1, "bicycle": 2, "bird": 3, "boat": 4,
+                          "bottle": 5, "bus": 6, "car": 7, "cat": 8, "chair": 9, "cow": 10,
+                          "diningtable": 11, "dog": 12, "horse": 13, "motorbike": 14, "person": 15,
+                          "pottedplant": 16, "sheep": 17, "sofa": 18, "train": 19, "tvmonitor": 20}
+        
+        self.color_map = {
+                            0: [0, 0, 0],
+                            1: [128, 0, 0],
+                            2: [0, 128, 0],
+                            3: [128, 128, 0],
+                            4: [0, 0, 128],
+                            5: [128, 0, 128],
+                            6: [0, 128, 128],
+                            7: [128, 128, 128],
+                            8: [64, 0, 0],
+                            9: [192, 0, 0],
+                            10: [64, 128, 0],
+                            11: [192, 128, 0],
+                            12: [64, 0, 128],
+                            13: [192, 0, 128],
+                            14: [64, 128, 128],
+                            15: [192, 128, 128],
+                            16: [0, 64, 0],
+                            17: [128, 64, 0],
+                            18: [0, 192, 0],
+                            19: [128, 192, 0],
+                            20: [0, 64, 128],
+        }
+
+
     def __len__(self) -> int:
         return len(self.images)
     
@@ -115,30 +145,6 @@ class VOCSegmentation(VOCDataset):
 
         self.one_hot_encode = one_hot_encode
         self.transform = transforms.__dict__[transform_name] if transform_name else None
-
-        self.color_map = {
-                            0: [0, 0, 0],
-                            1: [128, 0, 0],
-                            2: [0, 128, 0],
-                            3: [128, 128, 0],
-                            4: [0, 0, 128],
-                            5: [128, 0, 128],
-                            6: [0, 128, 128],
-                            7: [128, 128, 128],
-                            8: [64, 0, 0],
-                            9: [192, 0, 0],
-                            10: [64, 128, 0],
-                            11: [192, 128, 0],
-                            12: [64, 0, 128],
-                            13: [192, 0, 128],
-                            14: [64, 128, 128],
-                            15: [192, 128, 128],
-                            16: [0, 64, 0],
-                            17: [128, 64, 0],
-                            18: [0, 192, 0],
-                            19: [128, 192, 0],
-                            20: [0, 64, 128],
-        }
 
     def __getitem__(self, i):
 
@@ -227,12 +233,16 @@ class VOCDetection(VOCDataset):
 
     def __getitem__(self, i):
 
+        voc_ann = parse(self.targets[i]).getroot()
+        bbox, labels = self.parse_voc_xml(voc_ann)
+        
         # read data sample
         # We add image name as id
         sample = dict(
             id=self.images[i],
             image=self.read_image(self.images[i]),
-            bbox=self.parse_voc_xml(parse(self.targets[i]).getroot())
+            bboxes= bbox,
+            labels = labels
         )
 
         # apply augmentations
@@ -246,24 +256,18 @@ class VOCDetection(VOCDataset):
         image = Image.open(path).convert('RGB')
         return np.array(image)
     
-    @staticmethod
-    def parse_voc_xml(node: Element) -> Dict[str, Any]:
-        voc_dict: Dict[str, Any] = {}
-        children = list(node)
-        if children:
-            def_dic: Dict[str, Any] = collections.defaultdict(list)
-            for dc in map(VOCDetection.parse_voc_xml, children):
-                for ind, v in dc.items():
-                    def_dic[ind].append(v)
-            if node.tag == "annotation":
-                def_dic["object"] = [def_dic["object"]]
-            voc_dict = {node.tag: {ind: v[0] if len(v) == 1 else v for ind, v in def_dic.items()}}
-        if node.text:
-            text = node.text.strip()
-            if not children:
-                voc_dict[node.tag] = text
-        return voc_dict
-
+    def parse_voc_xml(self, xml_root):
+        bboxes = []
+        labels = []
+        for obj in xml_root.iter('object'):
+            name = obj.find("name").text
+            xmin = int(obj.find('bndbox/xmin').text)
+            ymin = int(obj.find('bndbox/ymin').text)
+            xmax = int(obj.find('bndbox/xmax').text)
+            ymax = int(obj.find('bndbox/ymax').text)
+            bboxes.append([xmin, ymin, xmax, ymax])
+            labels.append(self.class_map[name])
+        return bboxes, labels
     
 
     
