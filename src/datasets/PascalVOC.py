@@ -225,17 +225,19 @@ class VOCDetection(VOCDataset):
             ids: Optional[list] = None,
             transform_name: Optional[str] = None,
             download : Optional[bool] = False,
+            normalize_coords: Optional[bool] = True,
     ):
         super().__init__(dst_root=dst_root, year=year, 
                          image_set=image_set, download=download)
 
         self.transform = transforms.__dict__[transform_name] if transform_name else None
+        self.normalize_coords = normalize_coords
 
     def __getitem__(self, i):
 
         voc_ann = parse(self.targets[i]).getroot()
         bbox, labels, difficulties = self.parse_voc_xml(voc_ann)
-        
+
         # read data sample
         # We add image name as id
         sample = dict(
@@ -251,7 +253,21 @@ class VOCDetection(VOCDataset):
         if self.transform is not None:
             sample = self.transform(**sample)
 
+        # Convert bboxes to numpy
+        sample['bboxes'] = np.array(sample['bboxes'])
+
+        if self.normalize_coords:
+            # Normalize coordinates
+            sample['bboxes'] = self.normalize_bboxes(sample['bboxes'], sample['image'].shape[1], sample['image'].shape[2])
+
         return sample
+    
+    # Converts VOC bbox format to normalized coordinates (U, V)
+    def normalize_bboxes(self, bboxes, height, width):
+        old_dims = np.array([width, height, width, height])
+        new_boxes = bboxes / old_dims  # percent coordinates
+        return new_boxes
+        
     
     def read_image(self, path):
         image = Image.open(path).convert('RGB')
