@@ -234,7 +234,7 @@ class VOCDetection(VOCDataset):
     def __getitem__(self, i):
 
         voc_ann = parse(self.targets[i]).getroot()
-        bbox, labels = self.parse_voc_xml(voc_ann)
+        bbox, labels, difficulties = self.parse_voc_xml(voc_ann)
         
         # read data sample
         # We add image name as id
@@ -242,7 +242,8 @@ class VOCDetection(VOCDataset):
             id=self.images[i],
             image=self.read_image(self.images[i]),
             bboxes= bbox,
-            labels = labels
+            labels = labels,
+            difficulties=difficulties
         )
 
         # apply augmentations
@@ -259,15 +260,18 @@ class VOCDetection(VOCDataset):
     def parse_voc_xml(self, xml_root):
         bboxes = []
         labels = []
+        difficulties = []
         for obj in xml_root.iter('object'):
+            difficult = int(obj.find('difficult').text == '1')
             name = obj.find("name").text
-            xmin = int(obj.find('bndbox/xmin').text)
-            ymin = int(obj.find('bndbox/ymin').text)
-            xmax = int(obj.find('bndbox/xmax').text)
-            ymax = int(obj.find('bndbox/ymax').text)
+            xmin = int(obj.find('bndbox/xmin').text) - 1
+            ymin = int(obj.find('bndbox/ymin').text) - 1
+            xmax = int(obj.find('bndbox/xmax').text) - 1
+            ymax = int(obj.find('bndbox/ymax').text) - 1
             bboxes.append([xmin, ymin, xmax, ymax])
             labels.append(self.class_map[name])
-        return bboxes, labels
+            difficulties.append(difficult)
+        return bboxes, labels, difficulties
     
 
     
