@@ -1,4 +1,4 @@
-logdir: logs/mobilenetv2
+logdir: logs/mobilenetv2_second
 gpus: [0]
 
 # define model
@@ -14,7 +14,7 @@ data:
 
   # datasets
   train_dataset:
-    name: VOCSegmentationDataset
+    name: VOCSegmentation
     init_params:
       dst_root: data/raw
       image_set: train
@@ -22,7 +22,7 @@ data:
       download: true
 
   valid_dataset:
-    name: VOCSegmentationDataset
+    name: VOCSegmentation
     init_params:
       dst_root: data/raw
       image_set: val
@@ -35,20 +35,20 @@ data:
     shuffle: true
     drop_last: true
     pin_memory: true
-    num_workers: 0
+    num_workers: 12
     # Only needed for MacOS M1, remove if not the case
-    # multiprocessing_context: forkserver # Only needed in MacOS M1
-    # persistent_workers: true # Only needed in MacOS M1
+    multiprocessing_context: forkserver # Only needed in MacOS M1
+    persistent_workers: true # Only needed in MacOS M1
 
   valid_dataloader:
     batch_size: 8
     shuffle: false
     drop_last: false
     pin_memory: true
-    num_workers: 0
+    num_workers: 4
     # Only needed for MacOS M1, remove if not the case
-    # multiprocessing_context: forkserver # Only needed in MacOS M1
-    # persistent_workers: true # Only needed in MacOS M1
+    multiprocessing_context: forkserver # Only needed in MacOS M1
+    persistent_workers: true # Only needed in MacOS M1
     
 
 training:
@@ -67,12 +67,15 @@ training:
           task: multiclass
           num_classes: 21
 
-  # callbacks:
-  #   mask:
-  #   - name: BatchNormFreezer
-  #     init_params:
-  #       start_epoch: 0
-  #       freeze_affine: false
+  callbacks:
+    mask:
+    - name: TensorBoard
+      init_params:
+        log_dir: logs/mobilenetv2
+    # - name: BatchNormFreezer
+    #   init_params:
+    #     start_epoch: 0
+    #     freeze_affine: false
 
   optimizer:
     name: Adam

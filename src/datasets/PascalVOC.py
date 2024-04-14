@@ -14,94 +14,101 @@ _SHA1_HASH = "4e443f8a2eca6b1dac8a6c57641b67dd40621a49"
 _FILENAME = "VOCtrainval_11-May-2012.tar"
 _BASEDIR = os.path.join("VOCdevkit", "VOC2012")
 
+DATASET_YEAR_DICT = {
+    "2012": {
+        "url": "http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar",
+        "filename": "VOCtrainval_11-May-2012.tar",
+        "sha1_hash": "6cd6e144f989b92b3379bac3b3de84fd",
+        "base_dir": os.path.join("VOCdevkit", "VOC2012"),
+    },
+    "2007": {
+        "url": "http://host.robots.ox.ac.uk/pascal/VOC/voc2007/VOCtrainval_06-Nov-2007.tar",
+        "filename": "VOCtrainval_06-Nov-2007.tar",
+        "sha1_hash": "34ed68851bce2a36e2a223fa52c661d592c66b3c",
+        "base_dir": os.path.join("VOCdevkit", "VOC2007"),
+    },
+    "2007-test": {
+        "url": "http://host.robots.ox.ac.uk/pascal/VOC/voc2007/VOCtest_06-Nov-2007.tar",
+        "filename": "VOCtest_06-Nov-2007.tar",
+        "md5": "41a8d6e12baa5ab18ee7f8f8029b9e11805b4ef1",
+        "base_dir": os.path.join("VOCdevkit", "VOC2007"),
+    },
+}
 
-# Helper function to convert from one-hot encoded network output to color
-def VOC_onehot2Color(one_hot_encoded_mask):
+class VOCDataset(Dataset):
+    def __init__(self,
+                 dst_root: str,
+                 year: str,
+                 image_set: str,
+                 download: bool = False,
+                 transform_name: Optional[str] = None,):
 
-    COLOR_MAP = {
-        0: [0, 0, 0],
-        1: [128, 0, 0],
-        2: [0, 128, 0],
-        3: [128, 128, 0],
-        4: [0, 0, 128],
-        5: [128, 0, 128],
-        6: [0, 128, 128],
-        7: [128, 128, 128],
-        8: [64, 0, 0],
-        9: [192, 0, 0],
-        10: [64, 128, 0],
-        11: [192, 128, 0],
-        12: [64, 0, 128],
-        13: [192, 0, 128],
-        14: [64, 128, 128],
-        15: [192, 128, 128],
-        16: [0, 64, 0],
-        17: [128, 64, 0],
-        18: [0, 192, 0],
-        19: [128, 192, 0],
-        20: [0, 64, 128],
-    }
+        if not year in ["2007", "2012"]:
+            raise RuntimeError("Dataset set not selected correctly, valid options: 2007 or 2013")
+        
+        valid_image_sets = ["train", "trainval", "val"]
 
-    assert_msg = 'Input one hot encoded mask shall be a HxWxN_Classes ndarray'
-    assert isinstance(one_hot_encoded_mask, np.ndarray), assert_msg
-    assert len(one_hot_encoded_mask.shape) == 3, assert_msg
-    assert one_hot_encoded_mask.shape[2] == len(COLOR_MAP), assert_msg
+        if year == "2007":
+            valid_image_sets.append("test")
 
-    integer_mask = np.argmax(one_hot_encoded_mask, axis=2)
+        if not image_set in valid_image_sets:
+            raise RuntimeError("Dataset set not selected correctly, valid options: train, trainval, val")
+        
+        key = "2007-test" if year == "2007" and image_set == "test" else year
+        dataset_year_dict = DATASET_YEAR_DICT[key]
 
-    # Initialize an empty RGB mask
-    height, width = integer_mask.shape
-    rgb_mask = np.zeros((height, width, 3), dtype=np.uint8)
+        voc_root = os.path.join(dst_root, dataset_year_dict['base_dir'])
 
-    # Map class indices to RGB colors
-    for class_idx, color in COLOR_MAP.items():
-        rgb_mask[integer_mask == class_idx] = color 
+        if download:
+            download_and_extract_archive(dataset_year_dict['url'], 
+                                         dst_root, voc_root ,
+                                         filename=dataset_year_dict['filename'], 
+                                         md5=dataset_year_dict['sha1_hash'])
+            
+        if not os.path.isdir(voc_root):
+            raise RuntimeError("Dataset not found or corrupted. You can use download=True to download it")
+        
+        # Get the file names (images and labels) for selected task
+        task_dir = os.path.join(voc_root, "ImageSets", self._TASK_DIR)
+        split_sel = os.path.join(task_dir, image_set.rstrip("\n") + ".txt")
 
-    return rgb_mask
+        with open(os.path.join(split_sel)) as f:
+            file_names = [x.strip() for x in f.readlines()]
 
-class VOCSegmentationDataset(Dataset):
+        # Get image paths
+        image_dir = os.path.join(voc_root, "JPEGImages")
+        self.images = [os.path.join(image_dir, x + ".jpg") for x in file_names]
+
+        # Get labels paths
+        target_dir = os.path.join(voc_root, self._TARGET_DIR)
+        self.targets = [os.path.join(target_dir, x + self._TARGET_FILE_EXT) for x in file_names]
+
+        assert len(self.images) == len(self.targets)
+
+    def __len__(self) -> int:
+        return len(self.images)
+    
+class VOCSegmentation(VOCDataset):
+
+    _TASK_DIR = "Segmentation"
+    _TARGET_DIR = "SegmentationClass"
+    _TARGET_FILE_EXT = ".png"
 
     def __init__(
             self,
             dst_root: str,
+            year: str,
             image_set: str = "train",
             ids: Optional[list] = None,
             transform_name: Optional[str] = None,
             download : Optional[bool] = False,
             one_hot_encode : Optional[bool] = False,
     ):
-        super().__init__()
+        super().__init__(dst_root=dst_root, year=year, 
+                         image_set=image_set, download=download)
 
-        voc_root = os.path.join(dst_root, _BASEDIR)
-
-        self.one_hot_encode = one_hot_encode 
-
+        self.one_hot_encode = one_hot_encode
         self.transform = transforms.__dict__[transform_name] if transform_name else None
-
-        valid_image_sets = ["train", "trainval", "val"]
-
-        if not image_set in valid_image_sets:
-            raise RuntimeError("Dataset set not selected correctly, valid options: train, trainval, val")
-
-        if download:
-            download_and_extract_archive(_DATASET_URL, dst_root, voc_root ,filename=_FILENAME, md5=_SHA1_HASH)
-
-        if not os.path.isdir(voc_root):
-            raise RuntimeError("Dataset not found or corrupted. You can use download=True to download it")
-        
-        splits_dir = os.path.join(voc_root, "ImageSets", "Segmentation")
-        split_sel = os.path.join(splits_dir, image_set.rstrip("\n") + ".txt")
-
-        with open(os.path.join(split_sel)) as f:
-            file_names = [x.strip() for x in f.readlines()]
-
-        image_dir = os.path.join(voc_root, "JPEGImages")
-        self.images = [os.path.join(image_dir, x + ".jpg") for x in file_names]
-
-        target_dir = os.path.join(voc_root, "SegmentationClass")
-        self.targets = [os.path.join(target_dir, x + ".png") for x in file_names]
-
-        assert len(self.images) == len(self.targets)
 
         self.color_map = {
                             0: [0, 0, 0],
@@ -126,9 +133,6 @@ class VOCSegmentationDataset(Dataset):
                             19: [128, 192, 0],
                             20: [0, 64, 128],
         }
-
-    def __len__(self) -> int:
-        return len(self.images)
 
     def __getitem__(self, i):
 
@@ -195,4 +199,48 @@ class VOCSegmentationDataset(Dataset):
     def read_mask(self, path):
         mask = self.read_image(path)
         return mask
+
     
+# Helper function to convert from one-hot encoded network output to color
+def VOC_onehot2Color(one_hot_encoded_mask):
+
+    COLOR_MAP = {
+        0: [0, 0, 0],
+        1: [128, 0, 0],
+        2: [0, 128, 0],
+        3: [128, 128, 0],
+        4: [0, 0, 128],
+        5: [128, 0, 128],
+        6: [0, 128, 128],
+        7: [128, 128, 128],
+        8: [64, 0, 0],
+        9: [192, 0, 0],
+        10: [64, 128, 0],
+        11: [192, 128, 0],
+        12: [64, 0, 128],
+        13: [192, 0, 128],
+        14: [64, 128, 128],
+        15: [192, 128, 128],
+        16: [0, 64, 0],
+        17: [128, 64, 0],
+        18: [0, 192, 0],
+        19: [128, 192, 0],
+        20: [0, 64, 128],
+    }
+
+    assert_msg = 'Input one hot encoded mask shall be a HxWxN_Classes ndarray'
+    assert isinstance(one_hot_encoded_mask, np.ndarray), assert_msg
+    assert len(one_hot_encoded_mask.shape) == 3, assert_msg
+    assert one_hot_encoded_mask.shape[2] == len(COLOR_MAP), assert_msg
+
+    integer_mask = np.argmax(one_hot_encoded_mask, axis=2)
+
+    # Initialize an empty RGB mask
+    height, width = integer_mask.shape
+    rgb_mask = np.zeros((height, width, 3), dtype=np.uint8)
+
+    # Map class indices to RGB colors
+    for class_idx, color in COLOR_MAP.items():
+        rgb_mask[integer_mask == class_idx] = color 
+
+    return rgb_mask
