@@ -1,5 +1,11 @@
-from typing import Optional
+import collections
+from typing import Optional, Any, Dict
 import os
+from xml.etree.ElementTree import Element
+try:
+    from defusedxml.ElementTree import parse
+except ImportError:
+    from xml.etree.ElementTree import parse
 
 import numpy as np
 from PIL import Image
@@ -199,6 +205,66 @@ class VOCSegmentation(VOCDataset):
     def read_mask(self, path):
         mask = self.read_image(path)
         return mask
+    
+class VOCDetection(VOCDataset):
+    _TASK_DIR = "Main"
+    _TARGET_DIR = "Annotations"
+    _TARGET_FILE_EXT = ".xml"
+
+    def __init__(
+            self,
+            dst_root: str,
+            year: str,
+            image_set: str = "train",
+            ids: Optional[list] = None,
+            transform_name: Optional[str] = None,
+            download : Optional[bool] = False,
+    ):
+        super().__init__(dst_root=dst_root, year=year, 
+                         image_set=image_set, download=download)
+
+        self.transform = transforms.__dict__[transform_name] if transform_name else None
+
+    def __getitem__(self, i):
+
+        # read data sample
+        # We add image name as id
+        sample = dict(
+            id=self.images[i],
+            image=self.read_image(self.images[i]),
+            bbox=self.parse_voc_xml(parse(self.targets[i]).getroot())
+        )
+
+        # apply augmentations
+        # We cannot convert from HWC to CHW in this step
+        if self.transform is not None:
+            sample = self.transform(**sample)
+
+        return sample
+    
+    def read_image(self, path):
+        image = Image.open(path).convert('RGB')
+        return np.array(image)
+    
+    @staticmethod
+    def parse_voc_xml(node: Element) -> Dict[str, Any]:
+        voc_dict: Dict[str, Any] = {}
+        children = list(node)
+        if children:
+            def_dic: Dict[str, Any] = collections.defaultdict(list)
+            for dc in map(VOCDetection.parse_voc_xml, children):
+                for ind, v in dc.items():
+                    def_dic[ind].append(v)
+            if node.tag == "annotation":
+                def_dic["object"] = [def_dic["object"]]
+            voc_dict = {node.tag: {ind: v[0] if len(v) == 1 else v for ind, v in def_dic.items()}}
+        if node.text:
+            text = node.text.strip()
+            if not children:
+                voc_dict[node.tag] = text
+        return voc_dict
+
+    
 
     
 # Helper function to convert from one-hot encoded network output to color
