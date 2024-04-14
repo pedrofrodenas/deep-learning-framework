@@ -253,20 +253,23 @@ class VOCDetection(VOCDataset):
         if self.transform is not None:
             sample = self.transform(**sample)
 
-        # Convert bboxes to numpy
-        sample['bboxes'] = np.array(sample['bboxes'])
-
         if self.normalize_coords:
-            # Normalize coordinates
             sample['bboxes'] = self.normalize_bboxes(sample['bboxes'], sample['image'].shape[1], sample['image'].shape[2])
 
         return sample
     
     # Converts VOC bbox format to normalized coordinates (U, V)
-    def normalize_bboxes(self, bboxes, height, width):
-        old_dims = np.array([width, height, width, height])
-        new_boxes = bboxes / old_dims  # percent coordinates
-        return new_boxes
+    # def normalize_bboxes(self, bboxes, height, width):
+    #     old_dims = np.array([width, height, width, height])
+    #     new_boxes = bboxes / old_dims  # percent coordinates
+    #     return new_boxes
+    
+    def normalize_bboxes(self, bboxes, width, height):
+        new_bboxes = []
+        for bbox in bboxes:
+            xmin, ymin, xmax, ymax = bbox
+            new_bboxes.append((xmin / width, ymin / height, xmax / width, ymax / height))
+        return new_bboxes
         
     
     def read_image(self, path):
@@ -288,6 +291,42 @@ class VOCDetection(VOCDataset):
             labels.append(self.class_map[name])
             difficulties.append(difficult)
         return bboxes, labels, difficulties
+    
+    def collate_fn(self, batch):
+        """
+        Since each image may have a different number of objects, we need a collate function (to be passed to the DataLoader).
+
+        This describes how to combine these tensors of different sizes. We use lists.
+
+        Note: this need not be defined in this Class, can be standalone.
+
+        :param batch: an iterable of N sets from __getitem__()
+        :return: a tensor of images, lists of varying-size tensors of bounding boxes, labels, and difficulties
+        """
+
+        ids = list()
+        images = list()
+        boxes = list()
+        labels = list()
+        difficulties = list()
+
+        for b in batch:
+            ids.append(b['id'])
+            images.append(b['image'])
+            boxes.append(b['bboxes'])
+            labels.append(b['labels'])
+            difficulties.append(b['difficulties'])
+
+        images = torch.stack(images, dim=0)
+
+        sample = dict(
+                id=ids,
+                image=images,
+                bboxes= boxes,
+                labels = labels,
+                difficulties=difficulties
+            )
+        return sample
     
 
     
