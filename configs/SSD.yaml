@@ -1,0 +1,104 @@
+logdir: logs/ssd
+gpus: [0]
+
+# define model
+model:
+  architecture: SSD300
+  init_params:
+    encoder_name: mobilenet_v2
+    encoder_weights: imagenet
+    classes: 20
+    activation:
+
+data:
+
+  # datasets
+  train_dataset:
+    name: VOCDetection
+    init_params:
+      dst_root: data/raw
+      year: "2012"
+      image_set: train
+      transform_name: VOC_train_transform
+      download: true
+      normalize_coords: true
+
+  valid_dataset:
+    name: VOCDetection
+    init_params:
+      dst_root: data/raw
+      year: "2012"
+      image_set: val
+      transform_name: VOC_val_transform
+      download: true
+      normalize_coords: true
+
+  # loaders
+  train_dataloader:
+    batch_size: 8
+    shuffle: true
+    drop_last: true
+    pin_memory: true
+    num_workers: 0
+    # Only needed for MacOS M1, remove if not the case
+    # multiprocessing_context: forkserver # Only needed in MacOS M1
+    # persistent_workers: true # Only needed in MacOS M1
+
+  valid_dataloader:
+    batch_size: 8
+    shuffle: false
+    drop_last: false
+    pin_memory: true
+    num_workers: 0
+    # Only needed for MacOS M1, remove if not the case
+    # multiprocessing_context: forkserver # Only needed in MacOS M1
+    # persistent_workers: true # Only needed in MacOS M1
+    
+
+training:
+
+  losses:
+    mask:
+      name: CrossEntropyLoss
+      init_params:
+
+  metrics:
+    mask:
+      - name: Jacard
+        init_params: 
+          activation: softmax
+          threshold: null
+          task: multiclass
+          num_classes: 21
+
+  callbacks:
+    mask:
+    - name: TensorBoard
+      init_params:
+        log_dir: logs/mobilenetv2
+    # - name: BatchNormFreezer
+    #   init_params:
+    #     start_epoch: 0
+    #     freeze_affine: false
+
+  optimizer:
+    name: Adam
+    init_params:
+      lr: 0.0001
+
+  scheduler:
+    name: PolyLR
+    init_params:
+      epochs: 250
+
+  fit:
+    epochs: 250
+    accumulation_steps: 4
+    verbose: true
+
+prediction:
+    datainterpreter:
+      name: VOCInterpreter
+      init_params:
+        log_dir: logs/mobilenetv2
+        save_results: true 

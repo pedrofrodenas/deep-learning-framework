@@ -14,3 +14,7 @@ from .mobilenetv3 import (
     Mobilenetv3_small,
     Mobilenetv3_small_Segmentation,
 )
+
+from .SSD import (
+    SSD300,
+)
