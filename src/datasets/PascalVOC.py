@@ -24,7 +24,7 @@ DATASET_YEAR_DICT = {
     "2012": {
         "url": "http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar",
         "filename": "VOCtrainval_11-May-2012.tar",
-        "sha1_hash": "6cd6e144f989b92b3379bac3b3de84fd",
+        "sha1_hash": "4e443f8a2eca6b1dac8a6c57641b67dd40621a49",
         "base_dir": os.path.join("VOCdevkit", "VOC2012"),
     },
     "2007": {
@@ -255,6 +255,8 @@ class VOCDetection(VOCDataset):
 
         if self.normalize_coords:
             sample['bboxes'] = self.normalize_bboxes(sample['bboxes'], sample['image'].shape[1], sample['image'].shape[2])
+        else:
+            sample['bboxes'] = np.array(sample['bboxes'])
 
         return sample
     
@@ -269,7 +271,7 @@ class VOCDetection(VOCDataset):
         for bbox in bboxes:
             xmin, ymin, xmax, ymax = bbox
             new_bboxes.append((xmin / width, ymin / height, xmax / width, ymax / height))
-        return new_bboxes
+        return np.array(new_bboxes)
         
     
     def read_image(self, path):
@@ -313,11 +315,11 @@ class VOCDetection(VOCDataset):
         for b in batch:
             ids.append(b['id'])
             images.append(b['image'])
-            boxes.append(b['bboxes'])
-            labels.append(b['labels'])
+            boxes.append(torch.from_numpy(b['bboxes']).to(torch.float32))
+            labels.append(torch.tensor(b['labels']))
             difficulties.append(b['difficulties'])
 
-        images = torch.stack(images, dim=0)
+        images = torch.stack(images, dim=0).to(torch.float32)
 
         sample = dict(
                 id=ids,

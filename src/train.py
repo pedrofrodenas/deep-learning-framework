@@ -38,10 +38,7 @@ def main(cfg):
 
     print('Creating model...')
 
-    if torch.cuda.is_available():
-        device = torch.device("cuda")
-    else:
-        device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+    device = utils.get_device()
 
     print(f"Selected device: {device}")
 
@@ -77,9 +74,13 @@ def main(cfg):
         init_params=cfg.data.train_dataset.init_params
     )
 
+    # Get collate function if exists
+    collate_fn = getters.get_method(train_dataset, cfg.data.train_dataset.collate_fn)
+
     train_dataloader = torch.utils.data.DataLoader(
         train_dataset, **cfg.data.train_dataloader,
         worker_init_fn=worker_init_fn,
+        collate_fn=collate_fn
     )
 
     valid_dataset = getters.get_dataset(
@@ -87,8 +88,12 @@ def main(cfg):
         init_params=cfg.data.valid_dataset.init_params
     )
     
+    # Get collate function if exists
+    collate_fn = getters.get_method(train_dataset, cfg.data.valid_dataset.collate_fn)
+
     valid_dataloader = torch.utils.data.DataLoader(
-        valid_dataset, **cfg.data.valid_dataloader
+        valid_dataset, **cfg.data.valid_dataloader,
+        collate_fn=collate_fn,
     )
 
     # --------------------------------------------------
@@ -148,24 +153,31 @@ def main(cfg):
         callbacks.append(training.callbacks.Scheduler(scheduler))
 
     # add default logging and checkpoint callbacks
-    if cfg.logdir is not None:
+    # if cfg.logdir is not None:
 
-        # checkpointing
-        callbacks.append(training.callbacks.ModelCheckpoint(
-            directory=os.path.join(cfg.logdir, 'checkpoints'),
-            monitor="val_mask_" + metrics["mask"][0].__name__,
-            save_best=True,
-            save_top_k=20,
-            mode="max",
-            verbose=True,
-        ))
+    #     # checkpointing
+    #     callbacks.append(training.callbacks.ModelCheckpoint(
+    #         directory=os.path.join(cfg.logdir, 'checkpoints'),
+    #         monitor="val_mask_" + metrics["mask"][0].__name__,
+    #         save_best=True,
+    #         save_top_k=20,
+    #         mode="max",
+    #         verbose=True,
+    #     ))
 
     # --------------------------------------------------
     # start training
     # --------------------------------------------------
     print('Start training...')
 
-    runner = GPUNormRunner(model, model_device=device)
+    # Get model output keys
+    input_keys = getattr(model, "input_keys", "image")
+    output_keys = getattr(model, "output_keys", "mask")
+
+    runner = GPUNormRunner(model, 
+                           model_device=device, 
+                           model_input_keys=input_keys,
+                           model_output_keys=output_keys)
     runner.compile(
         optimizer=optimizer,
         loss=losses,

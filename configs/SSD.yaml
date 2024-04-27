@@ -7,7 +7,7 @@ model:
   init_params:
     encoder_name: mobilenet_v2
     encoder_weights: imagenet
-    classes: 20
+    classes: 21
     activation:
 
 data:
@@ -15,21 +15,23 @@ data:
   # datasets
   train_dataset:
     name: VOCDetection
+    collate_fn: collate_fn
     init_params:
       dst_root: data/raw
       year: "2012"
       image_set: train
-      transform_name: VOC_train_transform
+      transform_name: voc_detection
       download: true
       normalize_coords: true
 
   valid_dataset:
     name: VOCDetection
+    collate_fn: collate_fn
     init_params:
       dst_root: data/raw
       year: "2012"
       image_set: val
-      transform_name: VOC_val_transform
+      transform_name: voc_detection
       download: true
       normalize_coords: true
 
@@ -58,18 +60,14 @@ data:
 training:
 
   losses:
-    mask:
-      name: CrossEntropyLoss
+    bboxes:
+      name: MultiBoxLoss
       init_params:
 
   metrics:
-    mask:
-      - name: Jacard
-        init_params: 
-          activation: softmax
-          threshold: null
-          task: multiclass
-          num_classes: 21
+    bboxes:
+      - name: DummyMetric
+        init_params:
 
   callbacks:
     mask:
@@ -82,9 +80,9 @@ training:
     #     freeze_affine: false
 
   optimizer:
-    name: Adam
+    name: SGD
     init_params:
-      lr: 0.0001
+      lr: 0.001
 
   scheduler:
     name: PolyLR
@@ -93,7 +91,7 @@ training:
 
   fit:
     epochs: 250
-    accumulation_steps: 4
+    accumulation_steps: 1
     verbose: true
 
 prediction:

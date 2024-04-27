@@ -166,7 +166,11 @@ class Runner:
         # compute loss for each output
         for output_name, criterion in self.loss.items():
             loss_name = 'loss_{}'.format(output_name)
-            losses_dict[loss_name] = criterion(output[output_name], target[output_name])
+            # Modificar esto despues
+            losses_dict[loss_name] = criterion(output[output_name],
+                                               output["classes_scores"] , 
+                                               target[output_name],
+                                               target["labels"])
 
         # compute total loss across all outputs
         losses_dict['loss'] = sum(loss for loss in losses_dict.values())

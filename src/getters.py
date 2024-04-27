@@ -22,6 +22,22 @@ def get_dataset(name, init_params, **kwargs):
     dataset = dataset_class(**init_params, **kwargs)
     return dataset
 
+# Get a method named "name" from a instantialized class "class_instance"
+# if method does't exist return None
+def get_method(class_instance, name):
+    # Get a list of all attributes (including methods)
+    all_attributes = dir(class_instance)
+    # Filter out only the methods
+    method_names = [attr for attr in all_attributes if callable(getattr(class_instance, attr))]
+    method_dict = {name: getattr(class_instance, name) for name in method_names}
+    try:
+        fn =  method_dict[name]
+    except TypeError:
+        return None
+    else:
+        return fn
+    
+
 
 def get_loss(name, init_params):
     init_params = init_params or {}

@@ -117,3 +117,13 @@ class DiceCoef(base.Metric):
             class_weights=self.class_weights,
             drop_empty=self.drop_empty,
         )
+    
+class DummyMetric(base.Metric):
+    __name__ = 'dummy_metric'
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    @torch.no_grad()
+    def __call__(self, *args, **kwargs):
+        return torch.tensor(1)
