@@ -321,12 +321,18 @@ class VOCDetection(VOCDataset):
 
         images = torch.stack(images, dim=0).to(torch.float32)
 
+        # We join all label types in one dicctionary to unify
+        # with the rest of models
+        bboxes = dict(
+                bboxes = boxes,
+                labels = labels,
+                difficulties = difficulties
+        )
+
         sample = dict(
                 id=ids,
                 image=images,
-                bboxes= boxes,
-                labels = labels,
-                difficulties=difficulties
+                bboxes= bboxes
             )
         return sample
     

@@ -330,7 +330,7 @@ class SSD300(nn.Module):
 
         self.n_classes = classes
 
-        self.output_keys = ["bboxes", "classes_scores"]
+        self.output_keys = ["bboxes"]
 
         self.base = VGGBase()
         self.aux_convs = AuxiliaryConvolutions()
@@ -368,7 +368,7 @@ class SSD300(nn.Module):
         locs, classes_scores = self.pred_convs(conv4_3_feats, conv7_feats, conv8_2_feats, conv9_2_feats, conv10_2_feats,
                                                conv11_2_feats)  # (N, 8732, 4), (N, 8732, n_classes)
 
-        return locs, classes_scores
+        return [[locs, classes_scores]]
     
 
     def detect_objects(self, predicted_locs, predicted_scores, min_score, max_overlap, top_k):

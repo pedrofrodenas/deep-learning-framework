@@ -175,7 +175,7 @@ class MultiBoxLoss(nn.Module):
         self.smooth_l1 = nn.L1Loss()  # *smooth* L1 loss in the paper; see Remarks section in the tutorial
         self.cross_entropy = nn.CrossEntropyLoss(reduce=False)
 
-    def forward(self, predicted_locs, predicted_scores, boxes, labels):
+    def forward(self, prediction, target):
         """
         Forward propagation.
 
@@ -185,6 +185,11 @@ class MultiBoxLoss(nn.Module):
         :param labels: true object labels, a list of N tensors
         :return: multibox loss, a scalar
         """
+        predicted_locs = prediction[0]
+        predicted_scores = prediction[1]
+        boxes = target['bboxes']
+        labels = target['labels']
+
         batch_size = predicted_locs.size(0)
         n_priors = self.priors_cxcy.size(0)
         n_classes = predicted_scores.size(2)
