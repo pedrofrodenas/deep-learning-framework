@@ -36,7 +36,7 @@ DATASET_YEAR_DICT = {
     "2007-test": {
         "url": "http://host.robots.ox.ac.uk/pascal/VOC/voc2007/VOCtest_06-Nov-2007.tar",
         "filename": "VOCtest_06-Nov-2007.tar",
-        "md5": "41a8d6e12baa5ab18ee7f8f8029b9e11805b4ef1",
+        "sha1_hash": "41a8d6e12baa5ab18ee7f8f8029b9e11805b4ef1",
         "base_dir": os.path.join("VOCdevkit", "VOC2007"),
     },
 }

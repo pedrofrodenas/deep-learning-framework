@@ -17,15 +17,17 @@ data:
     name: VOCSegmentation
     init_params:
       dst_root: data/raw
-      image_set: train
+      year: "2012"
+      image_set: trainval
       transform_name: VOC_train_transform
       download: true
 
   valid_dataset:
     name: VOCSegmentation
     init_params:
+      year: "2007"
       dst_root: data/raw
-      image_set: val
+      image_set: test
       transform_name: VOC_val_transform
       download: true
 
