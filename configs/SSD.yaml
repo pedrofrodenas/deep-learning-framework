@@ -66,8 +66,12 @@ training:
 
   metrics:
     bboxes:
-      - name: DummyMetric
+      - name: SSDMeanAveragePrecision
         init_params:
+          min_score: 0.01
+          max_overlap: 0.45
+          top_k: 200
+          n_classes: 21
 
   callbacks:
     mask:

@@ -245,7 +245,7 @@ class VOCDetection(VOCDataset):
             image=self.read_image(self.images[i]),
             bboxes= bbox,
             labels = labels,
-            difficulties=difficulties
+            difficulties=np.array(difficulties)
         )
 
         # apply augmentations
@@ -317,7 +317,7 @@ class VOCDetection(VOCDataset):
             images.append(b['image'])
             boxes.append(torch.from_numpy(b['bboxes']).to(torch.float32))
             labels.append(torch.tensor(b['labels']))
-            difficulties.append(b['difficulties'])
+            difficulties.append(torch.from_numpy(b['difficulties']))
 
         images = torch.stack(images, dim=0).to(torch.float32)
 
